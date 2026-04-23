@@ -23,7 +23,7 @@ Ikuti langkah-langkah berikut untuk menjalankan aplikasi di mesin lokal kamu:
 
 1. **Clone Repositori**
    ```bash
-   git clone <URL_REPO_GITHUB_KALIAN>
+   git clone https://github.com/salharits21/DiagramCoffeeBE
    cd coffeeshop-api
 
 2. **Install Dependencies**

@@ -47,11 +47,12 @@ Ikuti langkah-langkah berikut untuk menjalankan aplikasi di mesin lokal kamu:
    ```bash
    php artisan key:generate
 
-5. **Database Migration**
+5. **Database Migration and Seeder**
    ```bash
-   php artisan migrate
+   php artisan migrate --seed
+   ```
 
-5. **Jalankan Development Server**
+6. **Run Development Server**
    ```bash
    php artisan serve
 

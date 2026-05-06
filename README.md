@@ -49,10 +49,30 @@ Ikuti langkah-langkah berikut untuk menjalankan aplikasi di mesin lokal kamu:
 
 5. **Database Migration and Seeder**
    ```bash
-   php artisan migrate --seed
+   php artisan migrate
+   php artisan db:seed
    ```
 
-6. **Run Development Server**
+6. **Install Laravel Sanctum**
+   ```bash
+   php artisan install:api
+   ```
+
+7. **Storage Link**
+   pastikan directory storage sudah ada
+   ```bash
+   php artisan storage:link
+   ```
+   jika directory storage sudah ada tetapi tidak bisa diakses hapus directory storage
+   ```bash
+   rm -rf storage
+   ```
+   kemudian jalankan kembali perintah storage link
+   ```bash
+   php artisan storage:link
+   ```
+
+8. **Run Development Server**
    ```bash
    php artisan serve
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\MenuItemBranchController;
+use App\Http\Controllers\AdminController;
 
 // Public Routes (Tidak perlu login)
 Route::post('/register', [AuthController::class, 'register']);
@@ -59,6 +60,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Assign/Unassign menu ke cabang
         Route::post('/admin/branches/{branch}/menu-items/{menuItem}', [MenuItemBranchController::class, 'assign']);
         Route::delete('/admin/branches/{branch}/menu-items/{menuItem}', [MenuItemBranchController::class, 'unassign']);
+
+        // Manajemen Admin
+        Route::get('/admin/admins', [AdminController::class, 'index']);
+        Route::get('/admin/admins/{admin}', [AdminController::class, 'show']);
+        Route::post('/admin/admins', [AdminController::class, 'store']);
+        Route::put('/admin/admins/{admin}', [AdminController::class, 'update']);
+        Route::delete('/admin/admins/{admin}', [AdminController::class, 'destroy']);
     });
 
     // ==========================================

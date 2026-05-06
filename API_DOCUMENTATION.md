@@ -436,6 +436,110 @@ Unassign menu dari cabang.
 
 ---
 
+## 6. Manajemen Admin
+
+### GET `/admin/admins` 🔒 `Super Admin`
+Daftar semua admin beserta data cabangnya.
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Daftar admin berhasil diambil",
+  "data": [
+    {
+      "id": 2,
+      "name": "Admin Dago",
+      "email": "admin.dago@diagramcoffee.com",
+      "role": "admin",
+      "branch_id": 1,
+      "loyalty_points": 0,
+      "branch": {
+        "id": 1,
+        "name": "Diagram Coffee Dago",
+        "address": "Jl. Ir. H. Juanda No.123, Dago, Bandung"
+      }
+    }
+  ]
+}
+```
+
+---
+
+### GET `/admin/admins/{id}` 🔒 `Super Admin`
+Detail admin tertentu.
+
+**Response:** `200 OK`  
+**Error:** `404 Not Found` — Admin tidak ditemukan (atau ID bukan role admin)
+
+---
+
+### POST `/admin/admins` 🔒 `Super Admin`
+Buat admin baru dan assign ke cabang.
+
+**Body:**
+| Field | Type | Required | Keterangan |
+|---|---|---|---|
+| `name` | string | ✅ | Nama lengkap admin |
+| `email` | string | ✅ | Email unik |
+| `password` | string | ✅ | Min 8 karakter |
+| `password_confirmation` | string | ✅ | Harus sama dengan password |
+| `branch_id` | integer | ✅ | ID cabang (harus valid) |
+
+**Response:** `201 Created`
+```json
+{
+  "success": true,
+  "message": "Admin berhasil ditambahkan",
+  "data": {
+    "id": 7,
+    "name": "Admin Baru",
+    "email": "admin.baru@diagramcoffee.com",
+    "role": "admin",
+    "branch_id": 2,
+    "branch": { "id": 2, "name": "Diagram Coffee Braga" }
+  }
+}
+```
+
+> **Catatan**: Role otomatis di-set ke `admin`. Tidak bisa membuat Super Admin dari endpoint ini.
+
+---
+
+### PUT `/admin/admins/{id}` 🔒 `Super Admin`
+Update data admin (nama, email, password, cabang).
+
+**Body:** (semua field optional)
+| Field | Type | Required | Keterangan |
+|---|---|---|---|
+| `name` | string | ❌ | Nama baru |
+| `email` | string | ❌ | Email baru (unique) |
+| `password` | string | ❌ | Password baru (min 8 karakter) |
+| `password_confirmation` | string | Conditional | Wajib jika `password` diisi |
+| `branch_id` | integer | ❌ | Pindahkan admin ke cabang lain |
+
+**Contoh — Pindah cabang:**
+```json
+{
+  "branch_id": 3
+}
+```
+
+**Response:** `200 OK`  
+**Error:** `404 Not Found` — Admin tidak ditemukan
+
+---
+
+### DELETE `/admin/admins/{id}` 🔒 `Super Admin`
+Hapus akun admin (hard delete). Semua token otomatis di-revoke.
+
+**Response:** `200 OK`  
+**Error:** `404 Not Found` — Admin tidak ditemukan
+
+> ⚠️ Ini adalah **hard delete**, data admin akan dihapus permanen.
+
+---
+
 ## Role & Access Control
 
 | Endpoint | Super Admin | Admin | Customer | Public |
@@ -448,6 +552,7 @@ Unassign menu dari cabang.
 | CRUD `/admin/categories` | ✅ | ❌ | ❌ | ❌ |
 | CRUD `/admin/menu-items` | ✅ | ❌ | ❌ | ❌ |
 | Assign/Unassign menu-cabang | ✅ | ❌ | ❌ | ❌ |
+| CRUD `/admin/admins` | ✅ | ❌ | ❌ | ❌ |
 | `GET /admin/branches/{id}/stock` | ✅ | ✅ (own) | ❌ | ❌ |
 | `PUT .../stock` | ✅ | ✅ (own) | ❌ | ❌ |
 

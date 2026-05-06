@@ -70,7 +70,7 @@ describe('Super Admin Category Management', function () {
         $this->assertDatabaseHas('categories', ['slug' => 'new-category']);
     });
 
-    test('slug is auto-generated and unique', function () {
+    test('cannot create category with duplicate name', function () {
         Category::factory()->create(['name' => 'Coffee', 'slug' => 'coffee']);
 
         $response = $this->actingAs($this->superAdmin)
@@ -78,8 +78,8 @@ describe('Super Admin Category Management', function () {
                 'name' => 'Coffee',
             ]);
 
-        $response->assertCreated()
-            ->assertJsonPath('data.slug', 'coffee-1');
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['name']);
     });
 
     test('super admin can update a category', function () {

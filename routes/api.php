@@ -8,6 +8,9 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\MenuItemBranchController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AdminOrderController;
+use App\Http\Controllers\XenditWebhookController;
 
 // Public Routes (Tidak perlu login)
 Route::post('/register', [AuthController::class, 'register']);
@@ -24,6 +27,9 @@ Route::get('/menu-items', [MenuItemController::class, 'index']);
 Route::get('/menu-items/{menuItem}', [MenuItemController::class, 'show']);
 Route::get('/branches/{branch}/menu', [MenuItemController::class, 'byBranch']);
 
+// Xendit Webhook (public, tapi diverifikasi oleh token)
+Route::post('/webhooks/xendit', [XenditWebhookController::class, 'handle']);
+
 // Protected Routes (Harus membawa Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -36,6 +42,14 @@ Route::middleware('auth:sanctum')->group(function () {
             'data' => $request->user()
         ]);
     });
+
+    // ==========================================
+    // Customer Order Routes
+    // ==========================================
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // ==========================================
     // Super Admin Routes
@@ -76,5 +90,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Lihat & update stok menu per cabang
         Route::get('/admin/branches/{branch}/stock', [MenuItemBranchController::class, 'index']);
         Route::put('/admin/branches/{branch}/menu-items/{menuItem}/stock', [MenuItemBranchController::class, 'update']);
+
+        // Manajemen Pesanan
+        Route::get('/admin/orders', [AdminOrderController::class, 'index']);
+        Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show']);
+        Route::put('/admin/orders/{order}/status', [AdminOrderController::class, 'updateStatus']);
+        Route::post('/admin/orders/{order}/confirm-cash', [AdminOrderController::class, 'confirmCash']);
     });
 });

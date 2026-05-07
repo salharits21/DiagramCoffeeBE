@@ -56,7 +56,7 @@ describe('Super Admin Branch Management', function () {
         $data = [
             'name' => 'Cabang Baru',
             'address' => 'Jl. Testing No.1',
-            'phone' => '022-1111111',
+            'phone' => '0221111111',
             'opening_time' => '08:00',
             'closing_time' => '22:00',
         ];

@@ -22,3 +22,5 @@ yarn-error.log
 /.vscode
 /.zed
 Coffeeshop_TA_Spec.md
+reset_passwords.php
+test_order_flow.php

@@ -81,8 +81,8 @@ describe('Create Admin', function () {
         $data = [
             'name' => 'New Admin',
             'email' => 'newadmin@diagramcoffee.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => '@Password123',
+            'password_confirmation' => '@Password123',
             'branch_id' => $this->otherBranch->id,
         ];
 
@@ -107,8 +107,8 @@ describe('Create Admin', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'Sneaky Admin',
                 'email' => 'sneaky@test.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => '@Password123',
+                'password_confirmation' => '@Password123',
                 'branch_id' => $this->branch->id,
             ]);
 
@@ -121,8 +121,8 @@ describe('Create Admin', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'No Branch',
                 'email' => 'nobranch@test.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => '@Password123',
+                'password_confirmation' => '@Password123',
             ]);
 
         $response->assertUnprocessable()
@@ -134,8 +134,8 @@ describe('Create Admin', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'Bad Branch',
                 'email' => 'badbranch@test.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => '@Password123',
+                'password_confirmation' => '@Password123',
                 'branch_id' => 9999,
             ]);
 
@@ -148,8 +148,8 @@ describe('Create Admin', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'Duplicate',
                 'email' => $this->admin->email,
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => '@Password123',
+                'password_confirmation' => '@Password123',
                 'branch_id' => $this->branch->id,
             ]);
 
@@ -176,7 +176,7 @@ describe('Create Admin', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'No Confirm',
                 'email' => 'noconfirm@test.com',
-                'password' => 'password123',
+                'password' => '@Password123',
                 'branch_id' => $this->branch->id,
             ]);
 
@@ -228,8 +228,8 @@ describe('Update Admin', function () {
     test('super admin can update admin password', function () {
         $response = $this->actingAs($this->superAdmin)
             ->putJson("/api/admin/admins/{$this->admin->id}", [
-                'password' => 'newpassword123',
-                'password_confirmation' => 'newpassword123',
+                'password' => 'new@Password123',
+                'password_confirmation' => 'new@Password123',
             ]);
 
         $response->assertOk();
@@ -321,8 +321,8 @@ describe('Admin Management Access Control', function () {
             ->postJson('/api/admin/admins', [
                 'name' => 'Test',
                 'email' => 'test@test.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => '@Password123',
+                'password_confirmation' => '@Password123',
                 'branch_id' => $this->branch->id,
             ]);
 

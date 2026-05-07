@@ -19,7 +19,7 @@ class UpdateAdminRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $adminId],
-            'password' => ['sometimes', 'string', Password::min(8), 'confirmed'],
+            'password' => ['sometimes', 'string', Password::min(8), 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/', 'confirmed'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
         ];
     }

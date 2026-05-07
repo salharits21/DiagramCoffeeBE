@@ -540,6 +540,172 @@ Hapus akun admin (hard delete). Semua token otomatis di-revoke.
 
 ---
 
+## 7. Pemesanan (Customer Orders)
+
+### POST `/orders` 🔒 `Customer`
+Buat pesanan baru.
+
+**Body:**
+| Field | Type | Required | Keterangan |
+|---|---|---|---|
+| `branch_id` | integer | ✅ | Cabang tujuan |
+| `payment_method` | enum | ✅ | `xendit` (QRIS/E-wallet) atau `cash` (tunai) |
+| `notes` | string | ❌ | Catatan pesanan (max 500 karakter) |
+| `items` | array | ✅ | Minimal 1 item |
+| `items.*.menu_item_id` | integer | ✅ | ID menu item |
+| `items.*.quantity` | integer | ✅ | Jumlah (1-100) |
+| `items.*.notes` | string | ❌ | Catatan per item ("less sugar", dll.) |
+
+**Contoh request:**
+```json
+{
+  "branch_id": 1,
+  "payment_method": "xendit",
+  "notes": "Takeaway",
+  "items": [
+    { "menu_item_id": 1, "quantity": 2 },
+    { "menu_item_id": 5, "quantity": 1, "notes": "extra shot" }
+  ]
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "success": true,
+  "message": "Pesanan berhasil dibuat",
+  "data": {
+    "id": 1,
+    "order_number": "ORD-20260507-A1B2C",
+    "status": "pending",
+    "payment_method": "xendit",
+    "payment_status": "unpaid",
+    "xendit_invoice_url": "https://checkout.xendit.co/web/...",
+    "subtotal": "85000.00",
+    "discount_total": "5000.00",
+    "total_amount": "80000.00",
+    "loyalty_points_earned": 8,
+    "items": [
+      {
+        "menu_item_id": 1,
+        "menu_item_name": "Espresso",
+        "quantity": 2,
+        "unit_price": "22500.00",
+        "subtotal": "45000.00"
+      }
+    ]
+  }
+}
+```
+
+> **Catatan penting:**
+> - Stok dikurangi saat order dibuat
+> - Harga final sudah termasuk diskon promo cabang
+> - Loyalty points: **1 poin per Rp 10.000** (dibulatkan ke bawah)
+> - Jika `payment_method=xendit`, response menyertakan `xendit_invoice_url` untuk redirect customer ke halaman pembayaran
+
+---
+
+### GET `/orders` 🔒 `Customer`
+Riwayat pesanan customer yang sedang login.
+
+**Response:** `200 OK` — Array of orders
+
+---
+
+### GET `/orders/{id}` 🔒 `Customer`
+Detail pesanan (hanya bisa lihat pesanan sendiri).
+
+**Response:** `200 OK`  
+**Error:** `404 Not Found` — Pesanan bukan miliknya
+
+---
+
+### POST `/orders/{id}/cancel` 🔒 `Customer`
+Batalkan pesanan. **Hanya bisa saat status `pending`.**
+
+**Response:** `200 OK`
+
+> Stok yang dikurangi akan dikembalikan saat cancel.
+
+**Error:** `422 Unprocessable` — Status bukan `pending`
+
+---
+
+## 8. Manajemen Pesanan (Admin)
+
+### GET `/admin/orders` 🔒 `Super Admin, Admin`
+Daftar pesanan. Admin hanya melihat pesanan cabangnya.
+
+**Query Parameters:**
+| Param | Type | Keterangan |
+|---|---|---|
+| `status` | enum | Filter: `pending`, `confirmed`, `preparing`, `ready`, `completed`, `cancelled` |
+| `payment_status` | enum | Filter: `unpaid`, `paid`, `failed`, `expired`, `refunded` |
+| `branch_id` | integer | Filter by cabang (Super Admin only) |
+
+---
+
+### GET `/admin/orders/{id}` 🔒 `Super Admin, Admin`
+Detail pesanan.
+
+---
+
+### PUT `/admin/orders/{id}/status` 🔒 `Super Admin, Admin`
+Update status pesanan: `confirmed → preparing → ready → completed`
+
+**Body:**
+| Field | Type | Required | Keterangan |
+|---|---|---|---|
+| `status` | enum | ✅ | `preparing`, `ready`, atau `completed` |
+
+**Error:** `422 Unprocessable` — Transisi status tidak valid
+
+---
+
+### POST `/admin/orders/{id}/confirm-cash` 🔒 `Super Admin, Admin`
+Konfirmasi pembayaran tunai oleh kasir. Loyalty points otomatis ditambahkan.
+
+**Error:** `422` — Bukan cash / sudah dibayar
+
+---
+
+## 9. Xendit Webhook
+
+### POST `/webhooks/xendit`
+Endpoint untuk menerima notifikasi pembayaran dari Xendit. **Public** tetapi diverifikasi oleh `x-callback-token`.
+
+| Status Xendit | Aksi |
+|---|---|
+| `PAID` / `SETTLED` | Order → `confirmed`, loyalty points ditambahkan |
+| `EXPIRED` | Order → `cancelled`, stok dikembalikan |
+
+> Webhook bersifat **idempotent** — callback ganda aman.
+
+---
+
+## Order Status Flow
+
+```
+pending → confirmed → preparing → ready → completed
+   ↓                                         
+cancelled (by customer/expired payment)
+```
+
+---
+
+## Environment Setup
+
+Tambahkan ke file `.env`:
+```
+XENDIT_SECRET_KEY=xnd_development_xxx
+XENDIT_WEBHOOK_SECRET=xxx
+```
+
+> Dapatkan dari [dashboard.xendit.co](https://dashboard.xendit.co/settings/developers)
+
+---
+
 ## Role & Access Control
 
 | Endpoint | Super Admin | Admin | Customer | Public |
@@ -555,9 +721,14 @@ Hapus akun admin (hard delete). Semua token otomatis di-revoke.
 | CRUD `/admin/admins` | ✅ | ❌ | ❌ | ❌ |
 | `GET /admin/branches/{id}/stock` | ✅ | ✅ (own) | ❌ | ❌ |
 | `PUT .../stock` | ✅ | ✅ (own) | ❌ | ❌ |
+| `POST /orders` | ❌ | ❌ | ✅ | ❌ |
+| `GET /orders` | ❌ | ❌ | ✅ (own) | ❌ |
+| `POST /orders/{id}/cancel` | ❌ | ❌ | ✅ (own) | ❌ |
+| `/admin/orders` | ✅ | ✅ (own branch) | ❌ | ❌ |
+| `.../confirm-cash` | ✅ | ✅ (own branch) | ❌ | ❌ |
 
 > 🔒 = Membutuhkan autentikasi (Bearer Token / Session)  
-> ✅ (own) = Admin hanya bisa akses cabangnya sendiri
+> ✅ (own) = Customer hanya pesanan sendiri, Admin hanya cabangnya
 
 ---
 
@@ -572,3 +743,4 @@ Hapus akun admin (hard delete). Semua token otomatis di-revoke.
 | `404` | Resource tidak ditemukan |
 | `409` | Conflict — resource sudah ada |
 | `422` | Validation error |
+

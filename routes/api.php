@@ -38,10 +38,18 @@ Route::get('/banners', [BannerController::class, 'index']);
 // Xendit Webhook (public, tapi diverifikasi oleh token)
 Route::post('/webhooks/xendit', [XenditWebhookController::class, 'handle']);
 
+// Email Verification (public, diakses dari link di email)
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware('signed')
+    ->name('verification.verify');
+
 // Protected Routes (Harus membawa Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Kirim ulang email verifikasi
+    Route::post('/email/resend', [AuthController::class, 'resendVerification'])
+        ->name('verification.send');
     // Endpoint untuk mendapatkan data profile user yang sedang login
     Route::get('/user', function (Request $request) {
         return response()->json([

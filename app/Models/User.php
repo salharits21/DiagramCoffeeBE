@@ -76,4 +76,23 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(Order::class);
     }
+
+    /**
+     * Voucher yang dimiliki user (pivot relation).
+     */
+    public function vouchers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Voucher::class, 'user_vouchers')
+            ->withPivot('id', 'is_used', 'used_at', 'expired_at')
+            ->withTimestamps()
+            ->using(UserVoucher::class);
+    }
+
+    /**
+     * Pivot data untuk voucher.
+     */
+    public function userVouchers(): HasMany
+    {
+        return $this->hasMany(UserVoucher::class, 'user_id');
+    }
 }

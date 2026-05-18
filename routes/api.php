@@ -72,6 +72,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // ==========================================
+    // Customer Voucher Routes
+    // ==========================================
+    Route::get('/vouchers', [\App\Http\Controllers\VoucherController::class, 'index']);
+    Route::get('/vouchers/my-vouchers', [\App\Http\Controllers\VoucherController::class, 'myVouchers']);
+    Route::post('/vouchers/exchange', [\App\Http\Controllers\VoucherController::class, 'exchange']);
+
+    // ==========================================
     // Super Admin Routes
     // ==========================================
     Route::middleware('role:super_admin')->group(function () {
@@ -107,6 +114,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/banners', [BannerController::class, 'store']);
         Route::put('/admin/banners/{banner}', [BannerController::class, 'update']);
         Route::delete('/admin/banners/{banner}', [BannerController::class, 'destroy']);
+
+        // Manajemen Voucher (Loyalty)
+        Route::post('/admin/vouchers', [\App\Http\Controllers\VoucherController::class, 'store']);
+        Route::put('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'update']);
+        Route::delete('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'destroy']);
     });
 
     // ==========================================

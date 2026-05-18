@@ -33,6 +33,9 @@ class OrderController extends Controller
             items: $data['items'],
             paymentMethod: $data['payment_method'],
             notes: $data['notes'] ?? null,
+            orderType: $data['order_type'],
+            tableNumber: $data['table_number'] ?? null,
+            userVoucherId: $data['voucher_id'] ?? null,
         );
         
         if ($user) {

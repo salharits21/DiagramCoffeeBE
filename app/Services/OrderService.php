@@ -20,17 +20,10 @@ class OrderService
 
     /**
      * Buat order baru.
-     *
-     * @param User $user
-     * @param int $branchId
-     * @param array $items  [['menu_item_id' => x, 'quantity' => y, 'notes' => '...']]
-     * @param string $paymentMethod  'xendit' | 'cash'
-     * @param string|null $notes
-     * @return Order
      */
-    public function createOrder(?User $user, int $branchId, array $items, string $paymentMethod, ?string $notes = null, string $guestName = null): Order
+    public function createOrder(?User $user, int $branchId, array $items, string $paymentMethod, ?string $notes = null, string $guestName = null, string $orderType = 'dine_in', ?string $tableNumber = null, ?int $userVoucherId = null): Order
     {
-        return DB::transaction(function () use ($user, $branchId, $items, $paymentMethod, $notes, $guestName) {
+        return DB::transaction(function () use ($user, $branchId, $items, $paymentMethod, $notes, $guestName, $orderType, $tableNumber, $userVoucherId) {
             $subtotal = '0.00';
             $discountTotal = '0.00';
             $orderItems = [];
@@ -58,7 +51,7 @@ class OrderService
 
                 // Hitung harga
                 $basePrice = $menuBranch->menuItem->base_price;
-                $unitPrice = $menuBranch->final_price; // sudah termasuk diskon jika ada
+                $unitPrice = $menuBranch->final_price; // sudah termasuk diskon item
                 $itemSubtotal = bcmul($unitPrice, (string) $item['quantity'], 2);
                 $itemDiscount = bcmul(bcsub($basePrice, $unitPrice, 2), (string) $item['quantity'], 2);
 
@@ -80,25 +73,86 @@ class OrderService
                 ];
             }
 
-            $totalAmount = bcsub($subtotal, $discountTotal, 2);
+            // Hitung harga setelah item discount
+            $amountAfterItemDiscount = bcsub($subtotal, $discountTotal, 2);
 
-            // Hitung loyalty points: 1 poin per Rp 10.000
+            // Terapkan Voucher Diskon (Jika Ada)
+            $voucherId = null;
+            $voucherDiscount = '0.00';
+            if ($user && $userVoucherId) {
+                $userVoucher = \App\Models\UserVoucher::where('id', $userVoucherId)
+                    ->where('user_id', $user->id)
+                    ->where('is_used', false)
+                    ->where(function ($query) {
+                        $query->whereNull('expired_at')->orWhere('expired_at', '>', now());
+                    })
+                    ->with('voucher')
+                    ->first();
+
+                if (!$userVoucher) {
+                    throw ValidationException::withMessages([
+                        'voucher_id' => ['Voucher tidak valid, sudah digunakan, atau sudah kedaluwarsa.'],
+                    ]);
+                }
+
+                if (!$userVoucher->voucher->is_active) {
+                     throw ValidationException::withMessages([
+                        'voucher_id' => ['Voucher ini tidak aktif lagi.'],
+                    ]);
+                }
+
+                if ($amountAfterItemDiscount < $userVoucher->voucher->min_transaction_amount) {
+                    throw ValidationException::withMessages([
+                        'voucher_id' => ['Minimal transaksi untuk menggunakan voucher ini adalah Rp ' . number_format($userVoucher->voucher->min_transaction_amount, 0, ',', '.')],
+                    ]);
+                }
+
+                $voucherId = $userVoucher->voucher_id;
+                // Diskon voucher tidak boleh membuat subtotal minus
+                if ($amountAfterItemDiscount < $userVoucher->voucher->discount_amount) {
+                     $voucherDiscount = $amountAfterItemDiscount;
+                } else {
+                     $voucherDiscount = $userVoucher->voucher->discount_amount;
+                }
+                
+                $discountTotal = bcadd($discountTotal, $voucherDiscount, 2);
+                $amountAfterItemDiscount = bcsub($amountAfterItemDiscount, $voucherDiscount, 2);
+
+                // Tandai voucher sedang digunakan
+                $userVoucher->update(['is_used' => true, 'used_at' => now()]);
+            }
+
+            $adminFee = '2000.00'; // Biaya admin 2000
+            $totalAmount = bcadd($amountAfterItemDiscount, $adminFee, 2);
+
+            // Hitung loyalty points: 1 poin per Rp 10.000 dari total bayar (termasuk admin_fee atau tidak? Biasanya total bayar)
             $loyaltyPoints = $user ? (int) bcdiv($totalAmount, '10000', 0) : 0;
+
+            // Jika take_away, table_number null
+            if ($orderType === 'take_away') {
+                $tableNumber = null;
+            }
 
             $order = Order::create([
                 'user_id' => $user?->id,
                 'guest_name' => $guestName ?? null,
                 'branch_id' => $branchId,
+                'order_type' => $orderType,
+                'table_number' => $tableNumber,
                 'order_number' => Order::generateOrderNumber(),
                 'status' => 'pending',
                 'payment_method' => $paymentMethod,
                 'payment_status' => 'unpaid',
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
+                'admin_fee' => $adminFee,
+                'voucher_id' => $voucherId, // Menyimpan ID Voucher-nya (bukan user_voucher) agar jika dihapus riwayat tetap ada (nullable/constrained)
                 'total_amount' => $totalAmount,
                 'loyalty_points_earned' => $loyaltyPoints,
                 'notes' => $notes,
             ]);
+
+            // property sementara dihapus karena tidak dibutuhkan dan menyebabkan error save()
 
             foreach ($orderItems as $orderItem) {
                 $order->items()->create($orderItem);
@@ -128,9 +182,13 @@ class OrderService
                         }
                     }
                     
-                    // Rollback stok jika gagal buat invoice
+                    // Rollback voucher jika gagal
+                    if ($userVoucherId) {
+                         \App\Models\UserVoucher::where('id', $userVoucherId)->update(['is_used' => false, 'used_at' => null]);
+                    }
+
                     throw ValidationException::withMessages([
-                        'payment' => ['Gagal membuat invoice pembayaran: ' . $e->getMessage()],
+                        'payment' => ['Gagal membuat invoice pembayaran: ' . $errorMessage],
                     ]);
                 }
             }

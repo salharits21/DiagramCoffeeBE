@@ -15,13 +15,20 @@ class StoreOrderRequest extends FormRequest
     {
         $rules = [
             'branch_id' => ['required', 'exists:branches,id'],
+            'order_type' => ['required', 'in:dine_in,take_away'],
             'payment_method' => ['required', 'in:xendit,cash'],
             'notes' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.menu_item_id' => ['required', 'exists:menu_items,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
+            'voucher_id' => ['nullable', 'exists:user_vouchers,id'], // Check pivot table
         ];
+
+        // Validasi table_number berdasarkan order_type
+        if (request('order_type') === 'dine_in') {
+            $rules['table_number'] = ['required', 'string', 'max:10'];
+        }
 
         if (!auth()->check()) {
             $rules['guest_name'] = ['required', 'string', 'max:255'];

@@ -62,6 +62,8 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'dine_in',
+                'table_number' => 'A1',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 2],
@@ -73,17 +75,19 @@ describe('Customer Create Order', function () {
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.payment_method', 'cash')
             ->assertJsonPath('data.payment_status', 'unpaid')
-            ->assertJsonPath('data.status', 'pending');
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.order_type', 'dine_in')
+            ->assertJsonPath('data.table_number', 'A1');
 
         // Cek order di database
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('order_items', 2);
 
-        // Cek harga: 25000*2 + 35000*1 = 85000
+        // Cek harga: 25000*2 + 35000*1 = 85000 + admin_fee 2000 = 87000
         $order = Order::first();
-        expect($order->total_amount)->toBe('85000.00');
+        expect($order->total_amount)->toBe('87000.00');
 
-        // Cek loyalty: 85000 / 10000 = 8 poin
+        // Cek loyalty: 87000 / 10000 = 8 poin
         expect($order->loyalty_points_earned)->toBe(8);
     });
 
@@ -93,6 +97,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'xendit',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 1],
@@ -109,6 +114,7 @@ describe('Customer Create Order', function () {
         $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 3],
@@ -130,6 +136,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 2],
@@ -139,10 +146,10 @@ describe('Customer Create Order', function () {
         $response->assertCreated();
 
         $order = Order::first();
-        // base: 25000*2 = 50000, discount: 2500*2 = 5000, total: 45000
+        // base: 25000*2 = 50000, discount: 2500*2 = 5000, total: 45000 + 2000 admin fee = 47000
         expect($order->subtotal)->toBe('50000.00')
             ->and($order->discount_total)->toBe('5000.00')
-            ->and($order->total_amount)->toBe('45000.00');
+            ->and($order->total_amount)->toBe('47000.00');
     });
 
     test('cannot order unavailable menu', function () {
@@ -151,6 +158,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 1],
@@ -165,6 +173,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 999],
@@ -178,6 +187,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [],
             ]);
@@ -190,6 +200,7 @@ describe('Customer Create Order', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => 9999,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 1],
@@ -203,6 +214,7 @@ describe('Customer Create Order', function () {
     test('guest without guest_name gets validation error', function () {
         $response = $this->postJson('/api/orders', [
             'branch_id' => $this->branch->id,
+            'order_type' => 'take_away',
             'payment_method' => 'cash',
             'items' => [['menu_item_id' => $this->menu1->id, 'quantity' => 1]],
         ]);
@@ -220,6 +232,7 @@ describe('Guest Ordering', function () {
     test('guest can create cash order with guest_name', function () {
         $response = $this->postJson('/api/orders', [
             'branch_id' => $this->branch->id,
+            'order_type' => 'take_away',
             'payment_method' => 'cash',
             'guest_name' => 'Tamu Budi',
             'items' => [
@@ -238,7 +251,7 @@ describe('Guest Ordering', function () {
         $order = Order::first();
         expect($order->user_id)->toBeNull()
             ->and($order->guest_name)->toBe('Tamu Budi')
-            ->and($order->total_amount)->toBe('85000.00');
+            ->and($order->total_amount)->toBe('87000.00');
     });
 
     test('guest can create xendit order', function () {
@@ -246,6 +259,7 @@ describe('Guest Ordering', function () {
 
         $response = $this->postJson('/api/orders', [
             'branch_id' => $this->branch->id,
+            'order_type' => 'take_away',
             'payment_method' => 'xendit',
             'guest_name' => 'Tamu Ani',
             'items' => [
@@ -262,6 +276,7 @@ describe('Guest Ordering', function () {
     test('guest does not earn loyalty points', function () {
         $this->postJson('/api/orders', [
             'branch_id' => $this->branch->id,
+            'order_type' => 'take_away',
             'payment_method' => 'cash',
             'guest_name' => 'Tamu No Points',
             'items' => [
@@ -298,6 +313,7 @@ describe('Guest Ordering', function () {
         $response = $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 1],
@@ -385,6 +401,7 @@ describe('Customer Cancel Order', function () {
         $this->actingAs($this->customer)
             ->postJson('/api/orders', [
                 'branch_id' => $this->branch->id,
+                'order_type' => 'take_away',
                 'payment_method' => 'cash',
                 'items' => [
                     ['menu_item_id' => $this->menu1->id, 'quantity' => 5],

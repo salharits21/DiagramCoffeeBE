@@ -16,6 +16,8 @@ class Order extends Model
         'user_id',
         'guest_name',
         'branch_id',
+        'order_type',
+        'table_number',
         'order_number',
         'status',
         'payment_method',
@@ -24,6 +26,8 @@ class Order extends Model
         'xendit_invoice_url',
         'subtotal',
         'discount_total',
+        'admin_fee',
+        'voucher_id',
         'total_amount',
         'loyalty_points_earned',
         'notes',
@@ -35,6 +39,7 @@ class Order extends Model
         return [
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
+            'admin_fee' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'paid_at' => 'datetime',
         ];
@@ -57,6 +62,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     // ==========================================

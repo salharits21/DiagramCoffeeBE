@@ -6,7 +6,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 
@@ -41,7 +44,13 @@ class AuthController extends Controller
     // Fitur Login
     public function login(LoginRequest $request)
     {
-        if (Auth::attempt($request->only('email', 'password'))) {
+        $remember = $request->boolean('remember_me');
+
+        if ($remember) {
+            Auth::guard('web')->setRememberDuration(config('auth.remember', 20160)); // 14 hari
+        }
+
+        if (Auth::attempt($request->only('email', 'password'), $remember)) {
             $request->session()->regenerate(); // Mencegah Session Fixation
 
             return response()->json([
@@ -113,5 +122,69 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Email verifikasi berhasil dikirim ulang',
         ]);
+    }
+
+    // Forgot Password: Kirim link reset ke email
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Link reset password berhasil dikirim ke email Anda',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Email tidak ditemukan',
+        ], 422);
+    }
+
+    // Reset Password: Ubah password menggunakan token dari email
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => [
+                'required',
+                'confirmed',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/',
+            ],
+        ], [
+            'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (!@#$%^&*).',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil direset. Silakan login dengan password baru.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Token tidak valid atau sudah kedaluwarsa',
+        ], 422);
     }
 }

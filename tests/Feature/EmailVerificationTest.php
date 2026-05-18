@@ -78,10 +78,9 @@ describe('Email Verification Endpoint', function () {
         $path = parse_url($verificationUrl, PHP_URL_PATH);
         $query = parse_url($verificationUrl, PHP_URL_QUERY);
 
-        $response = $this->getJson("{$path}?{$query}");
+        $response = $this->get("{$path}?{$query}");
 
-        $response->assertOk()
-            ->assertJsonPath('success', true);
+        $response->assertRedirect();
 
         $user->refresh();
         expect($user->hasVerifiedEmail())->toBeTrue();

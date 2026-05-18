@@ -17,6 +17,8 @@ use App\Http\Controllers\BannerController;
 // Public Routes (Tidak perlu login)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Public: Daftar cabang aktif
 Route::get('/branches', [BranchController::class, 'index']);

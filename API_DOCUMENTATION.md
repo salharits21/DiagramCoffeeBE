@@ -1,68 +1,67 @@
-# Diagram Coffee — API Documentation
+# Diagram Coffee Backend — API Documentation
 
-> **Base URL**: `http://localhost:8000/api`  
-> **Authentication**: Laravel Sanctum (Session-based with CSRF / Bearer Token)  
-> **Semua password seeder**: `@Password123`
-
----
-
-## Daftar Akun Seeder
-
-| Role | Email | Password |
-|---|---|---|
-| Super Admin | `superadmin@diagramcoffee.com` | `@Password123` |
-| Admin (Dago) | `admin.dago@diagramcoffee.com` | `@Password123` |
-| Admin (Braga) | `admin.braga@diagramcoffee.com` | `@Password123` |
-| Admin (Paskal) | `admin.paskal@diagramcoffee.com` | `@Password123` |
-| Customer | `customer@example.com` | `@Password123` |
-| Customer | `jane@example.com` | `@Password123` |
+> **Base URL:** `http://localhost:8000/api`
+> **Auth Method:** Laravel Sanctum (Session-based / Bearer Token)
 
 ---
 
-## Response Format
+## Daftar Isi
 
-Semua endpoint mengembalikan format JSON yang konsisten:
-
-```json
-{
-  "success": true,
-  "message": "Pesan deskriptif",
-  "data": { }
-}
-```
-
-Error validation (422):
-```json
-{
-  "message": "The name field is required.",
-  "errors": {
-    "name": ["The name field is required."]
-  }
-}
-```
+1. [Autentikasi](#1-autentikasi)
+2. [Profil User](#2-profil-user)
+3. [Cabang (Branch)](#3-cabang-branch)
+4. [Kategori](#4-kategori)
+5. [Menu Item](#5-menu-item)
+6. [Menu per Cabang (Branch Menu)](#6-menu-per-cabang-branch-menu)
+7. [Pesanan (Order)](#7-pesanan-order)
+8. [Voucher & Loyalty](#8-voucher--loyalty)
+9. [Banner Promo](#9-banner-promo)
+10. [Manajemen Admin](#10-manajemen-admin)
+11. [Manajemen Stok Cabang](#11-manajemen-stok-cabang)
+12. [Manajemen Pesanan (Admin)](#12-manajemen-pesanan-admin)
+13. [Statistik Penjualan](#13-statistik-penjualan)
+14. [Rekomendasi Menu](#14-rekomendasi-menu)
+15. [Webhook Xendit](#15-webhook-xendit)
+16. [Internal API (Python ML)](#16-internal-api-python-ml)
 
 ---
 
-## 1. Authentication
+## Legenda Role
 
-### POST `/register`
-Registrasi customer baru.
+| Simbol | Role | Keterangan |
+|--------|------|------------|
+| 🌐 | Public | Tanpa autentikasi |
+| 👤 | Customer | Customer yang login |
+| 🔧 | Admin | Admin cabang |
+| 👑 | Super Admin | Super Admin |
+
+---
+
+## 1. Autentikasi
+
+### `POST /register` 🌐
+
+Registrasi akun customer baru. Mengirim email verifikasi otomatis.
 
 **Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `name` | string | ✅ | Nama lengkap |
-| `email` | string | ✅ | Email unik |
-| `password` | string | ✅ | Min 8 karakter |
-| `password_confirmation` | string | ✅ | Harus sama |
+```json
+{
+  "name": "string, required, max:255",
+  "email": "string, required, email, unique",
+  "password": "string, required, min:8, confirmed",
+  "password_confirmation": "string, required"
+}
+```
 
-**Response:** `201 Created`
+> **Aturan Password:** Minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (`!@#$%^&*`).
+
+**Response `201`:**
 ```json
 {
   "success": true,
-  "message": "Registrasi berhasil",
+  "message": "Registrasi berhasil. Silakan cek email untuk verifikasi.",
   "data": {
-    "user": { "id": 1, "name": "...", "email": "...", "role": "customer" },
+    "user": { ... },
     "access_token": "1|abc...",
     "token_type": "Bearer"
   }
@@ -71,220 +70,276 @@ Registrasi customer baru.
 
 ---
 
-### POST `/login`
-Login user (semua role).
+### `POST /login` 🌐
+
+Login menggunakan email dan password (session-based).
 
 **Body:**
-| Field | Type | Required |
-|---|---|---|
-| `email` | string | ✅ |
-| `password` | string | ✅ |
+```json
+{
+  "email": "string, required",
+  "password": "string, required",
+  "remember_me": "boolean, optional"
+}
+```
 
-**Response:** `200 OK`
+**Response `200`:**
 ```json
 {
   "success": true,
   "message": "Login berhasil",
-  "data": { "id": 1, "name": "...", "email": "...", "role": "super_admin" }
+  "data": { "id": 1, "name": "...", "email": "...", "role": "customer", ... }
 }
 ```
 
-**Error:** `401 Unauthorized` — Email atau password salah
+**Response `401`:**
+```json
+{ "success": false, "message": "Email atau password salah" }
+```
 
 ---
 
-### POST `/logout` 🔒
-Logout user.
+### `POST /logout` 👤🔧👑
 
-**Headers:** `Authorization: Bearer {token}`
+Logout dan hapus sesi.
 
-**Response:** `200 OK`
+**Headers:** `Cookie: laravel_session=...`
 
----
-
-### GET `/user` 🔒
-Mendapatkan data user yang sedang login.
-
-**Headers:** `Authorization: Bearer {token}`
-
-**Response:** `200 OK`
+**Response `200`:**
+```json
+{ "success": true, "message": "Logout berhasil" }
+```
 
 ---
 
-## 2. Branches (Cabang)
+### `POST /forgot-password` 🌐
 
-### GET `/branches`
-Daftar semua cabang **aktif** (public).
+Kirim link reset password ke email.
 
-**Response:** `200 OK`
+**Body:**
+```json
+{ "email": "string, required, email" }
+```
+
+**Response `200`:**
+```json
+{ "success": true, "message": "Link reset password berhasil dikirim ke email Anda" }
+```
+
+---
+
+### `POST /reset-password` 🌐
+
+Reset password menggunakan token dari email.
+
+**Body:**
+```json
+{
+  "token": "string, required",
+  "email": "string, required, email",
+  "password": "string, required, min:8, confirmed",
+  "password_confirmation": "string, required"
+}
+```
+
+---
+
+### `GET /email/verify/{id}/{hash}` 🌐
+
+Verifikasi email (diakses dari link di email). Redirect ke frontend setelah berhasil.
+
+---
+
+### `POST /email/resend` 👤🔧👑
+
+Kirim ulang email verifikasi.
+
+---
+
+## 2. Profil User
+
+### `GET /user` 👤🔧👑
+
+Mendapatkan data profil user yang sedang login.
+
+**Response `200`:**
 ```json
 {
   "success": true,
-  "message": "Daftar cabang berhasil diambil",
+  "message": "Data user berhasil diambil",
+  "data": { "id": 1, "name": "...", "email": "...", "role": "customer", "loyalty_points": 150, ... }
+}
+```
+
+---
+
+### `PUT /user/profile` 👤🔧👑
+
+Edit nama profil.
+
+**Body:**
+```json
+{ "name": "string, required, max:255" }
+```
+
+---
+
+## 3. Cabang (Branch)
+
+### `GET /branches` 🌐
+
+Daftar cabang yang aktif.
+
+**Response `200`:**
+```json
+{
+  "success": true,
   "data": [
-    {
-      "id": 1,
-      "name": "Diagram Coffee Dago",
-      "address": "Jl. Ir. H. Juanda No.123, Dago, Bandung",
-      "phone": "022-1234567",
-      "status": "active",
-      "opening_time": "08:00",
-      "closing_time": "22:00"
-    }
+    { "id": 1, "name": "Diagram Coffee Dago", "address": "...", "phone": "...", "status": "active", "opening_time": "08:00", "closing_time": "22:00" }
   ]
 }
 ```
 
 ---
 
-### GET `/branches/{id}`
-Detail cabang tertentu.
+### `GET /branches/{id}` 🌐
 
-**Response:** `200 OK`
-
----
-
-### GET `/admin/branches` 🔒 `Super Admin`
-Semua cabang termasuk yang **inactive**.
+Detail satu cabang.
 
 ---
 
-### POST `/admin/branches` 🔒 `Super Admin`
+### `GET /admin/branches` 👑
+
+Semua cabang termasuk yang `inactive` (untuk panel admin).
+
+---
+
+### `POST /admin/branches` 👑
+
 Buat cabang baru.
 
 **Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `name` | string | ✅ | Nama cabang |
-| `address` | string | ✅ | Alamat lengkap |
-| `phone` | string | ❌ | Nomor telepon |
-| `status` | enum | ❌ | `active` (default) / `inactive` |
-| `opening_time` | time | ❌ | Format `HH:mm` |
-| `closing_time` | time | ❌ | Format `HH:mm` |
-
-**Response:** `201 Created`
+```json
+{
+  "name": "string, required, max:255",
+  "address": "string, required",
+  "phone": "string, nullable, numeric, min:7, unique",
+  "status": "active|inactive, optional (default: active)",
+  "opening_time": "HH:mm, nullable",
+  "closing_time": "HH:mm, nullable"
+}
+```
 
 ---
 
-### PUT `/admin/branches/{id}` 🔒 `Super Admin`
+### `PUT /admin/branches/{id}` 👑
+
 Update cabang.
 
-**Body:** Sama seperti POST (semua field optional).
-
-**Response:** `200 OK`
-
 ---
 
-### DELETE `/admin/branches/{id}` 🔒 `Super Admin`
+### `DELETE /admin/branches/{id}` 👑
+
 Hapus cabang (soft delete).
 
-**Response:** `200 OK`
+---
+
+## 4. Kategori
+
+### `GET /categories` 🌐
+
+Daftar kategori beserta jumlah menu aktif (`menu_items_count`).
 
 ---
 
-## 3. Categories (Kategori Menu)
+### `GET /categories/{id}` 🌐
 
-### GET `/categories`
-Daftar semua kategori beserta jumlah menu aktif.
-
-**Response:** `200 OK`
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "Coffee",
-      "slug": "coffee",
-      "description": "Berbagai pilihan kopi berkualitas",
-      "sort_order": 1,
-      "menu_items_count": 10
-    }
-  ]
-}
-```
+Detail kategori beserta daftar menu aktif di dalamnya.
 
 ---
 
-### GET `/categories/{id}`
-Detail kategori beserta daftar menu aktifnya.
+### `POST /admin/categories` 👑
 
-**Response:** `200 OK` — Includes `menu_items` array
-
----
-
-### POST `/admin/categories` 🔒 `Super Admin`
-Buat kategori baru. Slug otomatis di-generate dari `name`.
+Buat kategori baru. Slug di-generate otomatis dari `name`.
 
 **Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `name` | string | ✅ | Nama kategori |
-| `description` | string | ❌ | Deskripsi |
-| `sort_order` | integer | ❌ | Urutan tampil (default: 0) |
-
-**Response:** `201 Created`
-
----
-
-### PUT `/admin/categories/{id}` 🔒 `Super Admin`
-Update kategori. Slug otomatis di-regenerate jika `name` berubah.
-
-**Response:** `200 OK`
-
----
-
-### DELETE `/admin/categories/{id}` 🔒 `Super Admin`
-Hapus kategori (soft delete).
-
-**Response:** `200 OK`
-
----
-
-## 4. Menu Items
-
-### GET `/menu-items`
-Daftar menu. Customer hanya melihat menu aktif. Super Admin/Admin melihat semua.
-
-**Query Parameters:**
-| Param | Type | Keterangan |
-|---|---|---|
-| `category_id` | integer | Filter by kategori |
-| `search` | string | Cari berdasarkan nama |
-
-**Response:** `200 OK`
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "category_id": 1,
-      "name": "Espresso",
-      "slug": "espresso",
-      "description": "Kopi espresso murni dengan crema sempurna",
-      "base_price": "22000.00",
-      "image_url": null,
-      "is_active": true,
-      "category": { "id": 1, "name": "Coffee", "slug": "coffee" }
-    }
-  ]
+  "name": "string, required, max:255",
+  "description": "string, nullable",
+  "sort_order": "integer, nullable"
 }
 ```
 
 ---
 
-### GET `/menu-items/{id}`
-Detail menu beserta ketersediaan di semua cabang.
+### `PUT /admin/categories/{id}` 👑
 
-**Response:** `200 OK` — Includes `branches` array with pivot data
+Update kategori.
 
 ---
 
-### GET `/branches/{id}/menu`
-Menu yang **tersedia** (available) di cabang tertentu. Berguna untuk customer saat memilih cabang.
+### `DELETE /admin/categories/{id}` 👑
 
-**Response:** `200 OK`
+Hapus kategori (soft delete).
+
+---
+
+## 5. Menu Item
+
+### `GET /menu-items` 🌐
+
+Daftar semua menu (hanya menu aktif untuk customer/guest).
+
+**Query Params:**
+| Param | Type | Keterangan |
+|-------|------|------------|
+| `category_id` | int | Filter by kategori |
+| `search` | string | Cari berdasarkan nama |
+
+---
+
+### `GET /menu-items/{id}` 🌐
+
+Detail menu beserta ketersediaan per cabang.
+
+---
+
+### `POST /admin/menu-items` 👑
+
+Buat menu baru. **Form-data** (karena upload gambar).
+
+**Body (multipart/form-data):**
+| Field | Type | Keterangan |
+|-------|------|------------|
+| `category_id` | int | required, exists |
+| `name` | string | required, unique, max:100 |
+| `description` | string | nullable |
+| `base_price` | numeric | required, min:1 |
+| `image_url` | file | nullable, jpeg/png/jpg/webp, max:2MB |
+| `is_active` | boolean | optional |
+
+---
+
+### `PUT /admin/menu-items/{id}` 👑
+
+Update menu (form-data jika ada gambar baru).
+
+---
+
+### `DELETE /admin/menu-items/{id}` 👑
+
+Hapus menu (soft delete).
+
+---
+
+## 6. Menu per Cabang (Branch Menu)
+
+### `GET /branches/{branch_id}/menus` 🌐
+
+Daftar menu yang tersedia di cabang tertentu, termasuk harga final setelah diskon.
+
+**Response `200`:**
 ```json
 {
   "success": true,
@@ -292,14 +347,17 @@ Menu yang **tersedia** (available) di cabang tertentu. Berguna untuk customer sa
     {
       "id": 1,
       "name": "Cappuccino",
-      "base_price": "30000.00",
+      "slug": "cappuccino",
+      "description": "...",
+      "image_url": "...",
+      "category": "Coffee",
+      "base_price": 30000,
+      "final_price": 25500,
       "stock": 25,
-      "is_available": true,
       "is_promo_active": true,
       "discount_type": "percentage",
-      "discount_percentage": "15.00",
-      "discount_amount": null,
-      "category": { "id": 1, "name": "Coffee" }
+      "discount_percentage": 15,
+      "discount_amount": null
     }
   ]
 }
@@ -307,440 +365,491 @@ Menu yang **tersedia** (available) di cabang tertentu. Berguna untuk customer sa
 
 ---
 
-### POST `/admin/menu-items` 🔒 `Super Admin`
-Buat menu baru. Slug otomatis di-generate.
+### `GET /branches/{branch_id}/menus/{menu_item_id}` 🌐
+
+Detail satu menu di cabang tertentu.
+
+---
+
+## 7. Pesanan (Order)
+
+### `POST /orders` 🌐👤
+
+Buat pesanan baru. Bisa sebagai guest atau customer yang login.
 
 **Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `category_id` | integer | ✅ | ID kategori (harus valid) |
-| `name` | string | ✅ | Nama menu |
-| `description` | string | ❌ | Deskripsi menu |
-| `base_price` | numeric | ✅ | Harga dasar (Rupiah) |
-| `image_url` | string | ❌ | URL gambar |
-| `is_active` | boolean | ❌ | Default: `true` |
-
-**Response:** `201 Created`
-
----
-
-### PUT `/admin/menu-items/{id}` 🔒 `Super Admin`
-Update menu item.
-
-**Response:** `200 OK`
-
----
-
-### DELETE `/admin/menu-items/{id}` 🔒 `Super Admin`
-Hapus menu (soft delete).
-
-**Response:** `200 OK`
-
----
-
-## 5. Stock & Promo per Cabang
-
-### GET `/admin/branches/{branchId}/stock` 🔒 `Super Admin, Admin`
-Lihat semua menu beserta stok & promo di cabang tertentu.
-
-> ⚠️ **Admin** hanya bisa mengakses data **cabangnya sendiri**.
-
-**Response:** `200 OK`
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "menu_item_id": 3,
-      "branch_id": 1,
-      "is_available": true,
-      "stock": 25,
-      "discount_type": "percentage",
-      "discount_percentage": "15.00",
-      "discount_amount": null,
-      "is_promo_active": true,
-      "menu_item": {
-        "id": 3,
-        "name": "Cappuccino",
-        "base_price": "30000.00",
-        "category": { "id": 1, "name": "Coffee" }
-      }
-    }
-  ]
-}
-```
-
----
-
-### POST `/admin/branches/{branchId}/menu-items/{menuItemId}` 🔒 `Super Admin`
-Assign menu ke cabang (buat record stok baru).
-
-**Response:** `201 Created`  
-**Error:** `409 Conflict` — Menu sudah ada di cabang
-
----
-
-### PUT `/admin/branches/{branchId}/menu-items/{menuItemId}/stock` 🔒 `Super Admin, Admin`
-Update stok, ketersediaan, dan promo menu di cabang.
-
-> ⚠️ **Admin** hanya bisa update **cabangnya sendiri**.
-
-**Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `is_available` | boolean | ❌ | Toggle ketersediaan |
-| `stock` | integer\|null | ❌ | Jumlah stok. `null` = unlimited |
-| `discount_type` | enum\|null | ❌ | `percentage`, `fixed`, atau `null` (hapus promo) |
-| `discount_percentage` | numeric | Conditional | Wajib jika `discount_type=percentage`. Range: 0-100 |
-| `discount_amount` | numeric | Conditional | Wajib jika `discount_type=fixed`. Nominal potongan (Rp) |
-| `is_promo_active` | boolean | ❌ | Toggle aktif/nonaktif promo |
-
-> **Catatan**: Hanya **satu tipe diskon** yang bisa aktif. Saat `discount_type` berubah, field diskon yang tidak relevan otomatis di-reset ke `null`.
-
-**Contoh — Set diskon persentase:**
-```json
-{
-  "discount_type": "percentage",
-  "discount_percentage": 15,
-  "is_promo_active": true
-}
-```
-
-**Contoh — Set potongan langsung:**
-```json
-{
-  "discount_type": "fixed",
-  "discount_amount": 5000,
-  "is_promo_active": true
-}
-```
-
-**Contoh — Hapus promo:**
-```json
-{
-  "discount_type": null,
-  "is_promo_active": false
-}
-```
-
-**Response:** `200 OK`
-
----
-
-### DELETE `/admin/branches/{branchId}/menu-items/{menuItemId}` 🔒 `Super Admin`
-Unassign menu dari cabang.
-
-**Response:** `200 OK`  
-**Error:** `404 Not Found` — Menu tidak ditemukan di cabang
-
----
-
-## 6. Manajemen Admin
-
-### GET `/admin/admins` 🔒 `Super Admin`
-Daftar semua admin beserta data cabangnya.
-
-**Response:** `200 OK`
-```json
-{
-  "success": true,
-  "message": "Daftar admin berhasil diambil",
-  "data": [
-    {
-      "id": 2,
-      "name": "Admin Dago",
-      "email": "admin.dago@diagramcoffee.com",
-      "role": "admin",
-      "branch_id": 1,
-      "loyalty_points": 0,
-      "branch": {
-        "id": 1,
-        "name": "Diagram Coffee Dago",
-        "address": "Jl. Ir. H. Juanda No.123, Dago, Bandung"
-      }
-    }
-  ]
-}
-```
-
----
-
-### GET `/admin/admins/{id}` 🔒 `Super Admin`
-Detail admin tertentu.
-
-**Response:** `200 OK`  
-**Error:** `404 Not Found` — Admin tidak ditemukan (atau ID bukan role admin)
-
----
-
-### POST `/admin/admins` 🔒 `Super Admin`
-Buat admin baru dan assign ke cabang.
-
-**Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `name` | string | ✅ | Nama lengkap admin |
-| `email` | string | ✅ | Email unik |
-| `password` | string | ✅ | Min 8 karakter |
-| `password_confirmation` | string | ✅ | Harus sama dengan password |
-| `branch_id` | integer | ✅ | ID cabang (harus valid) |
-
-**Response:** `201 Created`
-```json
-{
-  "success": true,
-  "message": "Admin berhasil ditambahkan",
-  "data": {
-    "id": 7,
-    "name": "Admin Baru",
-    "email": "admin.baru@diagramcoffee.com",
-    "role": "admin",
-    "branch_id": 2,
-    "branch": { "id": 2, "name": "Diagram Coffee Braga" }
-  }
-}
-```
-
-> **Catatan**: Role otomatis di-set ke `admin`. Tidak bisa membuat Super Admin dari endpoint ini.
-
----
-
-### PUT `/admin/admins/{id}` 🔒 `Super Admin`
-Update data admin (nama, email, password, cabang).
-
-**Body:** (semua field optional)
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `name` | string | ❌ | Nama baru |
-| `email` | string | ❌ | Email baru (unique) |
-| `password` | string | ❌ | Password baru (min 8 karakter) |
-| `password_confirmation` | string | Conditional | Wajib jika `password` diisi |
-| `branch_id` | integer | ❌ | Pindahkan admin ke cabang lain |
-
-**Contoh — Pindah cabang:**
-```json
-{
-  "branch_id": 3
-}
-```
-
-**Response:** `200 OK`  
-**Error:** `404 Not Found` — Admin tidak ditemukan
-
----
-
-### DELETE `/admin/admins/{id}` 🔒 `Super Admin`
-Hapus akun admin (hard delete). Semua token otomatis di-revoke.
-
-**Response:** `200 OK`  
-**Error:** `404 Not Found` — Admin tidak ditemukan
-
-> ⚠️ Ini adalah **hard delete**, data admin akan dihapus permanen.
-
----
-
-## 7. Pemesanan (Customer Orders)
-
-### POST `/orders` 🔒 `Customer`
-Buat pesanan baru.
-
-**Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `branch_id` | integer | ✅ | Cabang tujuan |
-| `payment_method` | enum | ✅ | `xendit` (QRIS/E-wallet) atau `cash` (tunai) |
-| `notes` | string | ❌ | Catatan pesanan (max 500 karakter) |
-| `items` | array | ✅ | Minimal 1 item |
-| `items.*.menu_item_id` | integer | ✅ | ID menu item |
-| `items.*.quantity` | integer | ✅ | Jumlah (1-100) |
-| `items.*.notes` | string | ❌ | Catatan per item ("less sugar", dll.) |
-
-**Contoh request:**
-```json
-{
-  "branch_id": 1,
-  "payment_method": "xendit",
-  "notes": "Takeaway",
+  "branch_id": "int, required",
+  "order_type": "dine_in | take_away, required",
+  "table_number": "string, required jika dine_in, max:10",
+  "payment_method": "xendit | cash, required",
+  "notes": "string, nullable, max:500",
+  "guest_name": "string, required jika tidak login",
+  "voucher_id": "int, nullable (ID dari tabel user_vouchers)",
   "items": [
-    { "menu_item_id": 1, "quantity": 2 },
-    { "menu_item_id": 5, "quantity": 1, "notes": "extra shot" }
+    {
+      "menu_item_id": "int, required",
+      "quantity": "int, required, min:1, max:100",
+      "notes": "string, nullable, max:255"
+    }
   ]
 }
 ```
 
-**Response:** `201 Created`
+> **Biaya Admin:** Rp 2.000 ditambahkan otomatis ke semua transaksi.
+>
+> **Loyalty Points:** 1 poin per Rp 10.000 (hanya untuk customer yang login).
+>
+> **Voucher:** Hanya bisa dipakai oleh customer yang login. Harus belum expired dan belum digunakan.
+
+**Response `201`:**
 ```json
 {
   "success": true,
   "message": "Pesanan berhasil dibuat",
   "data": {
     "id": 1,
-    "order_number": "ORD-20260507-A1B2C",
+    "order_number": "ORD-20260519-A1B2C",
+    "order_type": "dine_in",
+    "table_number": "5",
     "status": "pending",
     "payment_method": "xendit",
     "payment_status": "unpaid",
-    "xendit_invoice_url": "https://checkout.xendit.co/web/...",
-    "subtotal": "85000.00",
-    "discount_total": "5000.00",
-    "total_amount": "80000.00",
-    "loyalty_points_earned": 8,
-    "items": [
-      {
-        "menu_item_id": 1,
-        "menu_item_name": "Espresso",
-        "quantity": 2,
-        "unit_price": "22500.00",
-        "subtotal": "45000.00"
-      }
+    "subtotal": "60000.00",
+    "discount_total": "0.00",
+    "admin_fee": "2000.00",
+    "total_amount": "62000.00",
+    "loyalty_points_earned": 6,
+    "xendit_invoice_url": "https://checkout.xendit.co/...",
+    "items": [ ... ],
+    "branch": { ... }
+  }
+}
+```
+
+---
+
+### `GET /orders` 👤
+
+Riwayat pesanan milik customer yang sedang login.
+
+---
+
+### `GET /orders/{id}` 👤
+
+Detail pesanan (customer hanya bisa melihat miliknya).
+
+---
+
+### `POST /orders/{id}/cancel` 👤
+
+Batalkan pesanan (hanya saat status masih `pending`).
+
+---
+
+### `GET /orders/status/{order_number}` 🌐
+
+Cek status pesanan secara publik berdasarkan nomor order.
+
+---
+
+## 8. Voucher & Loyalty
+
+### `GET /vouchers` 👤
+
+Daftar semua voucher yang aktif dan bisa ditukar.
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Diskon 10rb",
+      "code": "DISC10K",
+      "discount_amount": 10000,
+      "min_transaction_amount": 50000,
+      "points_required": 10,
+      "is_active": true
+    }
+  ]
+}
+```
+
+---
+
+### `POST /vouchers/exchange` 👤
+
+Tukar poin loyalty dengan voucher. Poin dikurangi, voucher berlaku 30 hari.
+
+**Body:**
+```json
+{ "voucher_id": "int, required, exists" }
+```
+
+---
+
+### `GET /vouchers/my-vouchers` 👤
+
+Daftar voucher yang dimiliki user (diurutkan: belum dipakai dulu, lalu yang segera expired).
+
+---
+
+### `POST /admin/vouchers` 👑
+
+Buat voucher baru.
+
+**Body:**
+```json
+{
+  "name": "string, required, max:255",
+  "code": "string, required, unique, max:50",
+  "discount_amount": "numeric, required, min:0",
+  "min_transaction_amount": "numeric, required, min:0",
+  "points_required": "int, required, min:0",
+  "is_active": "boolean, optional"
+}
+```
+
+---
+
+### `PUT /admin/vouchers/{id}` 👑
+
+Update voucher.
+
+---
+
+### `DELETE /admin/vouchers/{id}` 👑
+
+Hapus voucher.
+
+---
+
+## 9. Banner Promo
+
+### `GET /banners` 🌐
+
+Daftar banner promo yang aktif.
+
+---
+
+### `GET /admin/banners` 👑
+
+Semua banner (termasuk nonaktif).
+
+---
+
+### `POST /admin/banners` 👑
+
+Buat banner baru. **Form-data** (karena upload gambar).
+
+**Body (multipart/form-data):**
+| Field | Type | Keterangan |
+|-------|------|------------|
+| `title` | string | required |
+| `description` | string | nullable |
+| `image` | file | required, jpeg/png/jpg/webp, max:2MB |
+| `is_active` | boolean | optional |
+| `sort_order` | int | optional |
+
+---
+
+### `PUT /admin/banners/{id}` 👑
+
+Update banner.
+
+---
+
+### `DELETE /admin/banners/{id}` 👑
+
+Hapus banner (beserta file gambar).
+
+---
+
+## 10. Manajemen Admin
+
+### `GET /admin/admins` 👑
+
+Daftar semua akun admin beserta cabangnya.
+
+---
+
+### `GET /admin/admins/{id}` 👑
+
+Detail admin.
+
+---
+
+### `GET /admin/branches/{branch_id}/admins` 👑
+
+Daftar admin yang ditugaskan di cabang tertentu.
+
+---
+
+### `POST /admin/admins` 👑
+
+Buat akun admin baru.
+
+**Body:**
+```json
+{
+  "name": "string, required",
+  "email": "string, required, unique",
+  "password": "string, required, min:8, confirmed",
+  "password_confirmation": "string, required",
+  "branch_id": "int, required, exists"
+}
+```
+
+---
+
+### `PUT /admin/admins/{id}` 👑
+
+Update data admin (nama, email, password, cabang).
+
+---
+
+### `DELETE /admin/admins/{id}` 👑
+
+Hapus akun admin (hard delete + revoke tokens).
+
+---
+
+## 11. Manajemen Stok Cabang
+
+### `GET /admin/branches/{branch_id}/stock` 👑🔧
+
+Lihat stok & promo semua menu di cabang tertentu. Admin hanya bisa melihat cabangnya sendiri.
+
+---
+
+### `PUT /admin/branches/{branch_id}/menu-items/{menu_item_id}/stock` 👑🔧
+
+Update stok, ketersediaan, dan promo menu di cabang.
+
+**Body:**
+```json
+{
+  "is_available": "boolean, optional",
+  "stock": "int, nullable, min:0",
+  "discount_type": "percentage | fixed | null",
+  "discount_percentage": "numeric, min:0, max:100 (wajib jika discount_type=percentage)",
+  "discount_amount": "numeric, min:0 (wajib jika discount_type=fixed)",
+  "is_promo_active": "boolean, optional"
+}
+```
+
+---
+
+### `POST /admin/branches/{branch_id}/menu-items/{menu_item_id}` 👑
+
+Assign menu ke cabang (buat record pivot baru).
+
+---
+
+### `DELETE /admin/branches/{branch_id}/menu-items/{menu_item_id}` 👑
+
+Unassign (hapus) menu dari cabang.
+
+---
+
+## 12. Manajemen Pesanan (Admin)
+
+### `GET /admin/orders` 👑🔧
+
+Daftar pesanan. Admin hanya melihat pesanan di cabangnya.
+
+**Query Params:**
+| Param | Type | Keterangan |
+|-------|------|------------|
+| `status` | string | Filter: `pending`, `confirmed`, `preparing`, `ready`, `completed`, `cancelled` |
+| `payment_status` | string | Filter: `unpaid`, `paid`, `expired` |
+| `branch_id` | int | Filter cabang (Super Admin only) |
+
+---
+
+### `GET /admin/orders/{id}` 👑🔧
+
+Detail pesanan.
+
+---
+
+### `PUT /admin/orders/{id}/status` 👑🔧
+
+Update status pesanan secara bertahap.
+
+**Body:**
+```json
+{ "status": "preparing | ready | completed" }
+```
+
+> **Alur Status:** `pending` → `confirmed` → `preparing` → `ready` → `completed`
+
+---
+
+### `POST /admin/orders/{id}/confirm-cash` 👑🔧
+
+Konfirmasi pembayaran tunai (mengubah `payment_status` menjadi `paid`).
+
+---
+
+## 13. Statistik Penjualan
+
+### `GET /admin/statistics` 👑🔧
+
+Mendapatkan statistik penjualan.
+
+**Query Params:**
+| Param | Type | Keterangan |
+|-------|------|------------|
+| `days` | int | Jumlah hari terakhir (default: 7, max: 30) |
+| `branch_id` | int | Filter cabang (Super Admin only) |
+
+> **Admin:** Otomatis di-scope ke cabangnya sendiri.
+> **Super Admin:** Melihat semua cabang, bisa filter per cabang.
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "data": {
+    "today_transactions": 5,
+    "today_revenue": 250000,
+    "daily_revenue": [
+      { "date": "2026-05-13", "revenue": 120000, "transaction_count": 3 },
+      { "date": "2026-05-14", "revenue": 85000, "transaction_count": 2 }
+    ],
+    "top_menus": [
+      { "menu_item_id": 1, "menu_item_name": "Espresso", "total_sold": 15, "total_sales": 330000 },
+      { "menu_item_id": 4, "menu_item_name": "Caffe Latte", "total_sold": 12, "total_sales": 384000 }
     ]
   }
 }
 ```
 
-> **Catatan penting:**
-> - Stok dikurangi saat order dibuat
-> - Harga final sudah termasuk diskon promo cabang
-> - Loyalty points: **1 poin per Rp 10.000** (dibulatkan ke bawah)
-> - Jika `payment_method=xendit`, response menyertakan `xendit_invoice_url` untuk redirect customer ke halaman pembayaran
-
 ---
 
-### GET `/orders` 🔒 `Customer`
-Riwayat pesanan customer yang sedang login.
+## 14. Rekomendasi Menu
 
-**Response:** `200 OK` — Array of orders
+### `GET /recommendations` 🌐👤
 
----
+Mendapatkan rekomendasi menu berdasarkan algoritma ML. Mendukung guest dan customer.
 
-### GET `/orders/{id}` 🔒 `Customer`
-Detail pesanan (hanya bisa lihat pesanan sendiri).
-
-**Response:** `200 OK`  
-**Error:** `404 Not Found` — Pesanan bukan miliknya
-
----
-
-### POST `/orders/{id}/cancel` 🔒 `Customer`
-Batalkan pesanan. **Hanya bisa saat status `pending`.**
-
-**Response:** `200 OK`
-
-> Stok yang dikurangi akan dikembalikan saat cancel.
-
-**Error:** `422 Unprocessable` — Status bukan `pending`
-
----
-
-## 8. Manajemen Pesanan (Admin)
-
-### GET `/admin/orders` 🔒 `Super Admin, Admin`
-Daftar pesanan. Admin hanya melihat pesanan cabangnya.
-
-**Query Parameters:**
+**Query Params:**
 | Param | Type | Keterangan |
-|---|---|---|
-| `status` | enum | Filter: `pending`, `confirmed`, `preparing`, `ready`, `completed`, `cancelled` |
-| `payment_status` | enum | Filter: `unpaid`, `paid`, `failed`, `expired`, `refunded` |
-| `branch_id` | integer | Filter by cabang (Super Admin only) |
+|-------|------|------------|
+| `branch_id` | int | **Required**. Cabang untuk filter ketersediaan stok. |
+| `limit` | int | Jumlah rekomendasi per kategori (default: 5, max: 20) |
 
----
+> **Guest:** Mengembalikan `popularity` saja.
+> **Customer:** Mengembalikan `popularity`, `ibcf`, dan `hybrid` (dipanggil secara paralel).
 
-### GET `/admin/orders/{id}` 🔒 `Super Admin, Admin`
-Detail pesanan.
-
----
-
-### PUT `/admin/orders/{id}/status` 🔒 `Super Admin, Admin`
-Update status pesanan: `confirmed → preparing → ready → completed`
-
-**Body:**
-| Field | Type | Required | Keterangan |
-|---|---|---|---|
-| `status` | enum | ✅ | `preparing`, `ready`, atau `completed` |
-
-**Error:** `422 Unprocessable` — Transisi status tidak valid
-
----
-
-### POST `/admin/orders/{id}/confirm-cash` 🔒 `Super Admin, Admin`
-Konfirmasi pembayaran tunai oleh kasir. Loyalty points otomatis ditambahkan.
-
-**Error:** `422` — Bukan cash / sudah dibayar
-
----
-
-## 9. Xendit Webhook
-
-### POST `/webhooks/xendit`
-Endpoint untuk menerima notifikasi pembayaran dari Xendit. **Public** tetapi diverifikasi oleh `x-callback-token`.
-
-| Status Xendit | Aksi |
-|---|---|
-| `PAID` / `SETTLED` | Order → `confirmed`, loyalty points ditambahkan |
-| `EXPIRED` | Order → `cancelled`, stok dikembalikan |
-
-> Webhook bersifat **idempotent** — callback ganda aman.
-
----
-
-## Order Status Flow
-
-```
-pending → confirmed → preparing → ready → completed
-   ↓                                         
-cancelled (by customer/expired payment)
+**Response `200` (Guest):**
+```json
+{
+  "success": true,
+  "data": {
+    "popularity": [
+      { "id": 1, "name": "Espresso", "base_price": "22000.00", ... }
+    ]
+  }
+}
 ```
 
----
-
-## Environment Setup
-
-Tambahkan ke file `.env`:
+**Response `200` (Customer):**
+```json
+{
+  "success": true,
+  "data": {
+    "popularity": [ ... ],
+    "ibcf": [ ... ],
+    "hybrid": [ ... ]
+  }
+}
 ```
-XENDIT_SECRET_KEY=xnd_development_xxx
-XENDIT_WEBHOOK_SECRET=xxx
+
+> Jika IBCF/Hybrid gagal menemukan data customer, key tersebut akan berisi array kosong `[]`.
+
+---
+
+## 15. Webhook Xendit
+
+### `POST /webhooks/xendit` 🌐
+
+Endpoint callback untuk Xendit Payment Gateway. Diverifikasi menggunakan header `x-callback-token`.
+
+> Endpoint ini dipanggil otomatis oleh Xendit saat status pembayaran berubah (`PAID`, `EXPIRED`, dll).
+
+---
+
+## 16. Internal API (Python ML)
+
+### `GET /internal/transactions` 🔒
+
+Export data transaksi yang sudah completed untuk dijadikan dataset training ML.
+
+**Headers:**
+```
+X-API-KEY: secret_key_123
 ```
 
-> Dapatkan dari [dashboard.xendit.co](https://dashboard.xendit.co/settings/developers)
+**Response `200`:**
+```json
+[
+  {
+    "transaction_date": "2026-05-18",
+    "transaction_id": "ORD-20260518-A1B2C",
+    "customer_id": 5,
+    "menu_id": 1,
+    "menu_name": "Espresso",
+    "category": "Coffee",
+    "quantity": 2,
+    "price": 22000,
+    "total_price": 44000
+  }
+]
+```
+
+**Response `401`:**
+```json
+{ "success": false, "message": "Unauthorized access to internal API." }
+```
 
 ---
 
-## Role & Access Control
+## Format Response Umum
 
-| Endpoint | Super Admin | Admin | Customer | Public |
-|---|:---:|:---:|:---:|:---:|
-| `GET /branches` | ✅ | ✅ | ✅ | ✅ |
-| `GET /categories` | ✅ | ✅ | ✅ | ✅ |
-| `GET /menu-items` | ✅ (semua) | ✅ (aktif) | ✅ (aktif) | ✅ (aktif) |
-| `GET /branches/{id}/menu` | ✅ | ✅ | ✅ | ✅ |
-| CRUD `/admin/branches` | ✅ | ❌ | ❌ | ❌ |
-| CRUD `/admin/categories` | ✅ | ❌ | ❌ | ❌ |
-| CRUD `/admin/menu-items` | ✅ | ❌ | ❌ | ❌ |
-| Assign/Unassign menu-cabang | ✅ | ❌ | ❌ | ❌ |
-| CRUD `/admin/admins` | ✅ | ❌ | ❌ | ❌ |
-| `GET /admin/branches/{id}/stock` | ✅ | ✅ (own) | ❌ | ❌ |
-| `PUT .../stock` | ✅ | ✅ (own) | ❌ | ❌ |
-| `POST /orders` | ❌ | ❌ | ✅ | ❌ |
-| `GET /orders` | ❌ | ❌ | ✅ (own) | ❌ |
-| `POST /orders/{id}/cancel` | ❌ | ❌ | ✅ (own) | ❌ |
-| `/admin/orders` | ✅ | ✅ (own branch) | ❌ | ❌ |
-| `.../confirm-cash` | ✅ | ✅ (own branch) | ❌ | ❌ |
+Semua response mengikuti pola konsisten:
 
-> 🔒 = Membutuhkan autentikasi (Bearer Token / Session)  
-> ✅ (own) = Customer hanya pesanan sendiri, Admin hanya cabangnya
+```json
+{
+  "success": true | false,
+  "message": "Deskripsi hasil",
+  "data": { ... } | [ ... ]
+}
+```
 
----
+### Error Codes
 
-## HTTP Status Codes
+| Status | Keterangan |
+|--------|------------|
+| `200` | OK |
+| `201` | Created |
+| `401` | Unauthorized (belum login / token salah) |
+| `403` | Forbidden (tidak punya akses) |
+| `404` | Not Found |
+| `409` | Conflict (data sudah ada) |
+| `422` | Validation Error |
+| `500` | Server Error |
 
-| Code | Keterangan |
-|---|---|
-| `200` | Berhasil |
-| `201` | Resource berhasil dibuat |
-| `401` | Unauthorized — belum login |
-| `403` | Forbidden — tidak punya akses |
-| `404` | Resource tidak ditemukan |
-| `409` | Conflict — resource sudah ada |
-| `422` | Validation error |
-
+### Validation Error Response `422`:
+```json
+{
+  "message": "The branch id field is required.",
+  "errors": {
+    "branch_id": ["The branch id field is required."]
+  }
+}
+```

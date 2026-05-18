@@ -135,6 +135,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show']);
         Route::put('/admin/orders/{order}/status', [AdminOrderController::class, 'updateStatus']);
         Route::post('/admin/orders/{order}/confirm-cash', [AdminOrderController::class, 'confirmCash']);
+
+        // Statistik Penjualan
+        Route::get('/admin/statistics', [\App\Http\Controllers\StatisticController::class, 'index']);
     });
 });
 

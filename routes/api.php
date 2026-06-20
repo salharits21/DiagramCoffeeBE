@@ -120,6 +120,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/vouchers', [\App\Http\Controllers\VoucherController::class, 'store']);
         Route::put('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'update']);
         Route::delete('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'destroy']);
+
+        // Pengaturan Aplikasi
+        Route::get('/admin/settings', [\App\Http\Controllers\AppSettingController::class, 'index']);
+        Route::put('/admin/settings/{key}', [\App\Http\Controllers\AppSettingController::class, 'update']);
     });
 
     // ==========================================

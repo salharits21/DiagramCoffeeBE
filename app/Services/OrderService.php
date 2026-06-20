@@ -122,7 +122,7 @@ class OrderService
                 $userVoucher->update(['is_used' => true, 'used_at' => now()]);
             }
 
-            $adminFee = '2000.00'; // Biaya admin 2000
+            $adminFee = \App\Models\AppSetting::getValue('admin_fee');
             $totalAmount = bcadd($amountAfterItemDiscount, $adminFee, 2);
 
             // Hitung loyalty points: 1 poin per Rp 10.000 dari total bayar

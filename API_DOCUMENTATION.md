@@ -23,6 +23,7 @@
 14. [Rekomendasi Menu](#14-rekomendasi-menu)
 15. [Webhook Xendit](#15-webhook-xendit)
 16. [Internal API (Python ML)](#16-internal-api-python-ml)
+17. [Pengaturan Aplikasi (App Settings)](#17-pengaturan-aplikasi-app-settings)
 
 ---
 
@@ -816,6 +817,57 @@ X-API-KEY: secret_key_123
 ```json
 { "success": false, "message": "Unauthorized access to internal API." }
 ```
+
+---
+
+## 17. Pengaturan Aplikasi (App Settings)
+
+### `GET /admin/settings` 👑
+
+Menampilkan semua pengaturan aplikasi.
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Pengaturan aplikasi berhasil diambil",
+  "data": [
+    { "id": 1, "key": "admin_fee", "value": "2000.00", "created_at": "...", "updated_at": "..." }
+  ]
+}
+```
+
+---
+
+### `PUT /admin/settings/{key}` 👑
+
+Mengubah nilai pengaturan berdasarkan key.
+
+**Path Params:**
+| Param | Type | Keterangan |
+|-------|------|------------|
+| `key` | string | Key pengaturan, contoh: `admin_fee` |
+
+**Body:**
+```json
+{ "value": "3000" }
+```
+
+> Validasi khusus: Untuk key `admin_fee`, value harus berupa angka (`numeric`, `min:0`).
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Pengaturan berhasil diperbarui",
+  "data": { "id": 1, "key": "admin_fee", "value": "3000", ... }
+}
+```
+
+**Pengaturan yang tersedia:**
+| Key | Default | Keterangan |
+|-----|---------|------------|
+| `admin_fee` | `2000.00` | Biaya admin per transaksi (dalam Rupiah) |
 
 ---
 

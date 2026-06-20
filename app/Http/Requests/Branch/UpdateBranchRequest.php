@@ -19,8 +19,8 @@ class UpdateBranchRequest extends FormRequest
             'address' => ['sometimes', 'string'],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/', 'min:7', 'unique:branches,phone,' . $branchId],
             'status' => ['sometimes', 'in:active,inactive'],
-            'opening_time' => ['nullable', 'date_format:H:i'],
-            'closing_time' => ['nullable', 'date_format:H:i'],
+            'opening_time' => ['sometimes', 'date_format:H:i'],
+            'closing_time' => ['sometimes', 'date_format:H:i'],
         ];
     }
 }

@@ -109,6 +109,8 @@ class MenuItemController extends Controller
                 Storage::disk('public')->delete($menuItem->image_url);
             }
             $data['image_url'] = Storage::disk('public')->put('menu-images', $request->file('image_url'));
+        } else {
+            unset($data['image_url']);
         }
 
         $menuItem->update($data);

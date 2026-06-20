@@ -17,8 +17,8 @@ class UpdateMenuItemRequest extends FormRequest
         $menuItem = $this->route('menuItem');
         return [
             'category_id' => ['sometimes', 'exists:categories,id'],
-            'name' => ['sometimes', 'string', 'max:100', Rule::unique('menu_items','name')->whereNull('deleted_at')->ignore($menuItem->id)],
-            'description' => ['nullable', 'string'],
+            'name' => ['sometimes', 'string', 'max:100', Rule::unique('menu_items', 'name')->whereNull('deleted_at')->ignore($menuItem->id)],
+            'description' => ['sometimes', 'string'],
             'base_price' => ['sometimes', 'numeric', 'min:1'],
             'image_url' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'is_active' => ['sometimes', 'boolean'],

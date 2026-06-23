@@ -52,6 +52,35 @@ class OrderController extends Controller
     }
 
     /**
+     * Preview rincian transaksi sebelum checkout.
+     */
+    public function preview(Request $request)
+    {
+        $request->validate([
+            'branch_id' => ['required', 'exists:branches,id'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.menu_item_id' => ['required', 'exists:menu_items,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:100'],
+            'voucher_id' => ['nullable', 'exists:user_vouchers,id'],
+        ]);
+
+        $user = $request->user();
+
+        $preview = $this->orderService->previewOrder(
+            user: $user,
+            branchId: $request->branch_id,
+            items: $request->items,
+            userVoucherId: $request->voucher_id,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Preview transaksi berhasil',
+            'data' => $preview,
+        ]);
+    }
+
+    /**
      * Riwayat pesanan customer yang sedang login.
      */
     public function index(Request $request)

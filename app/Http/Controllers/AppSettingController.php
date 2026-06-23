@@ -22,28 +22,60 @@ class AppSettingController extends Controller
     }
 
     /**
-     * Update nilai pengaturan berdasarkan key.
+     * Tambah fee lain (PPh, dll).
      */
-    public function update(Request $request, string $key)
+    public function storeFee(Request $request)
     {
         $request->validate([
-            'value' => 'required|string',
+            'key' => 'required|string|unique:app_settings,key',
+            'value' => 'required|numeric|min:0' . ($request->type === 'percentage' ? '|max:100' : ''),
+            'label' => 'required|string',
+            'type' => 'required|in:fixed,percentage',
+        ]);
+
+        $setting = AppSetting::create($request->all());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fee berhasil ditambahkan',
+            'data' => $setting,
+        ], 201);
+    }
+
+    /**
+     * Update nilai pengaturan berdasarkan key.
+     */
+    public function updateFee(Request $request, string $key)
+    {
+        $request->validate([
+            'value' => 'required|numeric|min:0' . ($request->type === 'percentage' ? '|max:100' : ''),
+            'label' => 'required|string',
+            'type' => 'required|in:fixed,percentage',
         ]);
 
         $setting = AppSetting::where('key', $key)->firstOrFail();
 
-        // Validasi khusus untuk admin_fee
-        if ($key === 'admin_fee') {
-            $request->validate([
-                'value' => 'required|numeric|min:0',
-            ]);
-        }
-
-        $setting->update(['value' => $request->value]);
+        $setting->update(['value' => $request->value, 'label' => $request->label, 'type' => $request->type]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengaturan berhasil diperbarui',
+            'message' => 'Fee berhasil diperbarui',
+            'data' => $setting,
+        ]);
+    }
+
+    /**
+     * Hapus fee.
+     */
+    public function deleteFee(string $key)
+    {
+        $setting = AppSetting::where('key', $key)->firstOrFail();
+
+        $setting->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fee berhasil dihapus',
             'data' => $setting,
         ]);
     }

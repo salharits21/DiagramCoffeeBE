@@ -26,7 +26,6 @@ class Order extends Model
         'xendit_invoice_url',
         'subtotal',
         'discount_total',
-        'admin_fee',
         'voucher_id',
         'total_amount',
         'loyalty_points_earned',
@@ -59,9 +58,20 @@ class Order extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    /**
+     * Item pesanan.
+     */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Rincian fee tambahan (admin fee, dll).
+     */
+    public function fees(): HasMany
+    {
+        return $this->hasMany(OrderFee::class);
     }
 
     public function voucher(): BelongsTo

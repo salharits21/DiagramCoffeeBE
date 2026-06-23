@@ -13,6 +13,8 @@ use App\Http\Controllers\AdminOrderController;
 use App\Http\Controllers\XenditWebhookController;
 use App\Http\Controllers\BranchMenuController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\AppSettingController;
+use App\Http\Controllers\VoucherController;
 
 // Public Routes (Tidak perlu login)
 Route::post('/register', [AuthController::class, 'register']);
@@ -32,6 +34,7 @@ Route::get('/menu-items/{menuItem}', [MenuItemController::class, 'show']);
 Route::get('/branches/{branch}/menus', [BranchMenuController::class, 'index']);
 Route::get('/branches/{branch}/menus/{menuItem}', [BranchMenuController::class, 'show']);
 Route::post('/orders', [OrderController::class, 'store']);
+Route::post('/orders/preview', [OrderController::class, 'preview']);
 Route::get('/orders/status/{orderNumber}', [OrderController::class, 'guestStatus']);
 
 // Public: Banner promo
@@ -44,6 +47,9 @@ Route::post('/webhooks/xendit', [XenditWebhookController::class, 'handle']);
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->middleware('signed')
     ->name('verification.verify');
+
+// Total fee
+Route::get('/fee', [AppSettingController::class, 'index']);
 
 // Protected Routes (Harus membawa Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
@@ -74,9 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================
     // Customer Voucher Routes
     // ==========================================
-    Route::get('/vouchers', [\App\Http\Controllers\VoucherController::class, 'index']);
-    Route::get('/vouchers/my-vouchers', [\App\Http\Controllers\VoucherController::class, 'myVouchers']);
-    Route::post('/vouchers/exchange', [\App\Http\Controllers\VoucherController::class, 'exchange']);
+    Route::get('/vouchers', [VoucherController::class, 'index']);
+    Route::get('/vouchers/my-vouchers', [VoucherController::class, 'myVouchers']);
+    Route::post('/vouchers/exchange', [VoucherController::class, 'exchange']);
 
     // ==========================================
     // Super Admin Routes
@@ -117,13 +123,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/banners/{banner}', [BannerController::class, 'destroy']);
 
         // Manajemen Voucher (Loyalty)
-        Route::post('/admin/vouchers', [\App\Http\Controllers\VoucherController::class, 'store']);
-        Route::put('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'update']);
-        Route::delete('/admin/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'destroy']);
+        Route::post('/admin/vouchers', [VoucherController::class, 'store']);
+        Route::put('/admin/vouchers/{voucher}', [VoucherController::class, 'update']);
+        Route::delete('/admin/vouchers/{voucher}', [VoucherController::class, 'destroy']);
 
-        // Pengaturan Aplikasi
-        Route::get('/admin/settings', [\App\Http\Controllers\AppSettingController::class, 'index']);
-        Route::put('/admin/settings/{key}', [\App\Http\Controllers\AppSettingController::class, 'update']);
+        // Pengaturan Aplikasi (Fee)
+        Route::get('/admin/settings/fee', [AppSettingController::class, 'index']);
+        Route::post('/admin/settings/fee', [AppSettingController::class, 'storeFee']);
+        Route::put('/admin/settings/fee/{key}', [AppSettingController::class, 'updateFee']);
+        Route::delete('/admin/settings/fee/{key}', [AppSettingController::class, 'deleteFee']);
     });
 
     // ==========================================

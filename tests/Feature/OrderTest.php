@@ -37,6 +37,12 @@ beforeEach(function () {
         'is_available' => true,
         'stock' => 15,
     ]);
+
+    \App\Models\AppSetting::create([
+        'key' => 'admin_fee',
+        'value' => '2000.00',
+        'label' => 'Biaya Admin',
+    ]);
 });
 
 /**

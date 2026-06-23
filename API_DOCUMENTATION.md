@@ -23,7 +23,7 @@
 14. [Rekomendasi Menu](#14-rekomendasi-menu)
 15. [Webhook Xendit](#15-webhook-xendit)
 16. [Internal API (Python ML)](#16-internal-api-python-ml)
-17. [Pengaturan Aplikasi (App Settings)](#17-pengaturan-aplikasi-app-settings)
+17. [Pengaturan Fee (App Settings)](#17-pengaturan-fee-app-settings)
 
 ---
 
@@ -431,6 +431,64 @@ Buat pesanan baru. Bisa sebagai guest atau customer yang login.
 
 ---
 
+### `POST /orders/preview` 🌐
+
+Preview rincian transaksi (subtotal, diskon item, diskon voucher, fee aplikasi, total akhir, dan loyalty points) sebelum checkout. Data tidak akan disimpan ke database.
+
+**Body:**
+Sama seperti `POST /orders` tetapi hanya memerlukan data dasar:
+```json
+{
+  "branch_id": "int, required",
+  "voucher_id": "int, nullable (ID dari tabel user_vouchers)",
+  "items": [
+    {
+      "menu_item_id": "int, required",
+      "quantity": "int, required, min:1, max:100"
+    }
+  ]
+}
+```
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Preview transaksi berhasil",
+  "data": {
+    "items": [
+      {
+        "menu_item_id": 1,
+        "name": "Espresso",
+        "quantity": 2,
+        "base_price": "22000.00",
+        "unit_price": "22000.00",
+        "subtotal": "44000.00",
+        "discount": "0.00"
+      }
+    ],
+    "subtotal": "44000.00",
+    "discount_total": "5000.00",
+    "voucher": {
+      "voucher_name": "Diskon 5rb",
+      "voucher_code": "DISC5K",
+      "voucher_discount": "5000.00"
+    },
+    "fees": [
+      {
+        "key": "admin_fee",
+        "label": "Biaya Admin",
+        "amount": "2000.00"
+      }
+    ],
+    "total_amount": "41000.00",
+    "loyalty_points_earned": 4
+  }
+}
+```
+
+---
+
 ### `GET /orders` 👤
 
 Riwayat pesanan milik customer yang sedang login.
@@ -820,11 +878,11 @@ X-API-KEY: secret_key_123
 
 ---
 
-## 17. Pengaturan Aplikasi (App Settings)
+## 17. Pengaturan Fee (App Settings)
 
-### `GET /admin/settings` 👑
+### `GET /admin/settings/fee` 👑
 
-Menampilkan semua pengaturan aplikasi.
+Menampilkan semua pengaturan fee aplikasi.
 
 **Response `200`:**
 ```json
@@ -832,42 +890,88 @@ Menampilkan semua pengaturan aplikasi.
   "success": true,
   "message": "Pengaturan aplikasi berhasil diambil",
   "data": [
-    { "id": 1, "key": "admin_fee", "value": "2000.00", "created_at": "...", "updated_at": "..." }
+    { "id": 1, "key": "admin_fee", "value": "2000.00", "label": "Biaya Admin", "created_at": "...", "updated_at": "..." }
   ]
 }
 ```
 
 ---
 
-### `PUT /admin/settings/{key}` 👑
+### `POST /admin/settings/fee` 👑
 
-Mengubah nilai pengaturan berdasarkan key.
+Tambah fee baru (contoh: PPh, biaya layanan, dll).
+
+**Body:**
+```json
+{
+  "key": "string, required, unique",
+  "value": "numeric, required, min:0 (maks:100 jika type=percentage)",
+  "label": "string, required",
+  "type": "string, required, enum: fixed, percentage"
+}
+```
+
+**Response `201`:**
+```json
+{
+  "success": true,
+  "message": "Fee berhasil ditambahkan",
+  "data": { "id": 2, "key": "service_charge", "value": "5000", "label": "Biaya Layanan", ... }
+}
+```
+
+---
+
+### `PUT /admin/settings/fee/{key}` 👑
+
+Ubah nilai dan label fee yang sudah ada.
 
 **Path Params:**
 | Param | Type | Keterangan |
 |-------|------|------------|
-| `key` | string | Key pengaturan, contoh: `admin_fee` |
+| `key` | string | Key fee, contoh: `admin_fee` |
 
 **Body:**
 ```json
-{ "value": "3000" }
+{
+  "value": "numeric, required, min:0 (maks:100 jika type=percentage)",
+  "label": "string, required",
+  "type": "string, required, enum: fixed, percentage"
+}
 ```
-
-> Validasi khusus: Untuk key `admin_fee`, value harus berupa angka (`numeric`, `min:0`).
 
 **Response `200`:**
 ```json
 {
   "success": true,
-  "message": "Pengaturan berhasil diperbarui",
-  "data": { "id": 1, "key": "admin_fee", "value": "3000", ... }
+  "message": "Fee berhasil diperbarui",
+  "data": { "id": 1, "key": "admin_fee", "value": "3500", "label": "Biaya Admin (Baru)", ... }
 }
 ```
 
-**Pengaturan yang tersedia:**
-| Key | Default | Keterangan |
-|-----|---------|------------|
-| `admin_fee` | `2000.00` | Biaya admin per transaksi (dalam Rupiah) |
+---
+
+### `DELETE /admin/settings/fee/{key}` 👑
+
+Hapus fee.
+
+**Path Params:**
+| Param | Type | Keterangan |
+|-------|------|------------|
+| `key` | string | Key fee yang ingin dihapus |
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Fee berhasil dihapus"
+}
+```
+
+**Fee default yang tersedia (seeder):**
+| Key | Default Value | Label |
+|-----|---------------|-------|
+| `admin_fee` | `2000.00` | Biaya Admin |
 
 ---
 

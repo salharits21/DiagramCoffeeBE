@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AppSetting extends Model
 {
-    protected $fillable = ['key', 'value'];
+    protected $fillable = ['key', 'value', 'label', 'type'];
 
     /**
      * Default values bawaan jika belum ada di database.

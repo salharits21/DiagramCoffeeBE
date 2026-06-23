@@ -263,14 +263,10 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // ==========================================
-        // Pengaturan Aplikasi
-        // ==========================================
-        \App\Models\AppSetting::create(['key' => 'admin_fee', 'value' => '2000.00']);
-
         $this->call([
             VoucherSeeder::class,
             OrderSeeder::class,
+            FeeSeeder::class,
         ]);
     }
 }

@@ -76,6 +76,9 @@ class OrderService
             // Hitung harga setelah item discount
             $amountAfterItemDiscount = bcsub($subtotal, $discountTotal, 2);
 
+            // Simpan dasar untuk perhitungan fee (sebelum dipotong voucher)
+            $baseForFee = $amountAfterItemDiscount;
+
             // Terapkan Voucher Diskon (Jika Ada)
             $voucherId = null;
             $voucherDiscount = '0.00';
@@ -122,8 +125,26 @@ class OrderService
                 $userVoucher->update(['is_used' => true, 'used_at' => now()]);
             }
 
-            $adminFee = \App\Models\AppSetting::getValue('admin_fee');
-            $totalAmount = bcadd($amountAfterItemDiscount, $adminFee, 2);
+            $fees = \App\Models\AppSetting::all();
+            $totalFees = '0.00';
+            $feesToSave = [];
+
+            foreach ($fees as $fee) {
+                if ($fee->type === 'percentage') {
+                    $feeAmount = bcdiv(bcmul($baseForFee, $fee->value, 4), '100', 2);
+                } else {
+                    $feeAmount = $fee->value;
+                }
+                
+                $totalFees = bcadd($totalFees, $feeAmount, 2);
+                $feesToSave[] = [
+                    'fee_key' => $fee->key,
+                    'fee_label' => $fee->label,
+                    'amount' => $feeAmount,
+                ];
+            }
+
+            $totalAmount = bcadd($amountAfterItemDiscount, $totalFees, 2);
 
             // Hitung loyalty points: 1 poin per Rp 10.000 dari total bayar
             $loyaltyPoints = $user ? (int) bcdiv($totalAmount, '10000', 0) : 0;
@@ -145,7 +166,6 @@ class OrderService
                 'payment_status' => 'unpaid',
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
-                'admin_fee' => $adminFee,
                 'voucher_id' => $voucherId,
                 'total_amount' => $totalAmount,
                 'loyalty_points_earned' => $loyaltyPoints,
@@ -154,6 +174,14 @@ class OrderService
 
             foreach ($orderItems as $orderItem) {
                 $order->items()->create($orderItem);
+            }
+
+            foreach ($feesToSave as $feeData) {
+                $order->fees()->create([
+                    'fee_key' => $feeData['fee_key'],
+                    'fee_label' => $feeData['fee_label'],
+                    'amount' => $feeData['amount'],
+                ]);
             }
 
             // Jika bayar via Xendit, buat invoice
@@ -195,6 +223,136 @@ class OrderService
 
             return $order;
         });
+    }
+
+    /**
+     * Preview rincian transaksi sebelum checkout (tanpa menyimpan ke database).
+     */
+    public function previewOrder(?User $user, int $branchId, array $items, ?int $userVoucherId = null): array
+    {
+        $subtotal = '0.00';
+        $discountTotal = '0.00';
+        $previewItems = [];
+
+        foreach ($items as $item) {
+            $menuBranch = MenuItemBranch::where('menu_item_id', $item['menu_item_id'])
+                ->where('branch_id', $branchId)
+                ->where('is_available', true)
+                ->with('menuItem')
+                ->first();
+
+            if (!$menuBranch) {
+                throw ValidationException::withMessages([
+                    'items' => ["Menu item ID {$item['menu_item_id']} tidak tersedia di cabang ini."],
+                ]);
+            }
+
+            if ($menuBranch->stock !== null && $menuBranch->stock < $item['quantity']) {
+                throw ValidationException::withMessages([
+                    'items' => ["Stok '{$menuBranch->menuItem->name}' tidak mencukupi. Sisa: {$menuBranch->stock}"],
+                ]);
+            }
+
+            $basePrice = $menuBranch->menuItem->base_price;
+            $unitPrice = $menuBranch->final_price;
+            $itemSubtotal = bcmul($unitPrice, (string) $item['quantity'], 2);
+            $itemDiscount = bcmul(bcsub($basePrice, $unitPrice, 2), (string) $item['quantity'], 2);
+
+            $subtotal = bcadd($subtotal, bcmul($basePrice, (string) $item['quantity'], 2), 2);
+            $discountTotal = bcadd($discountTotal, $itemDiscount, 2);
+
+            $previewItems[] = [
+                'menu_item_id' => $item['menu_item_id'],
+                'name' => $menuBranch->menuItem->name,
+                'quantity' => $item['quantity'],
+                'base_price' => $basePrice,
+                'unit_price' => $unitPrice,
+                'subtotal' => $itemSubtotal,
+                'discount' => $itemDiscount,
+            ];
+        }
+
+        $amountAfterItemDiscount = bcsub($subtotal, $discountTotal, 2);
+        
+        $baseForFee = $amountAfterItemDiscount;
+
+        // Preview voucher
+        $voucherInfo = null;
+        if ($user && $userVoucherId) {
+            $userVoucher = \App\Models\UserVoucher::where('id', $userVoucherId)
+                ->where('user_id', $user->id)
+                ->where('is_used', false)
+                ->where(function ($query) {
+                    $query->whereNull('expired_at')->orWhere('expired_at', '>', now());
+                })
+                ->with('voucher')
+                ->first();
+
+            if (!$userVoucher) {
+                throw ValidationException::withMessages([
+                    'voucher_id' => ['Voucher tidak valid, sudah digunakan, atau sudah kedaluwarsa.'],
+                ]);
+            }
+
+            if (!$userVoucher->voucher->is_active) {
+                throw ValidationException::withMessages([
+                    'voucher_id' => ['Voucher ini tidak aktif lagi.'],
+                ]);
+            }
+
+            if ($amountAfterItemDiscount < $userVoucher->voucher->min_transaction_amount) {
+                throw ValidationException::withMessages([
+                    'voucher_id' => ['Minimal transaksi untuk menggunakan voucher ini adalah Rp ' . number_format($userVoucher->voucher->min_transaction_amount, 0, ',', '.')],
+                ]);
+            }
+
+            $voucherDiscount = ($amountAfterItemDiscount < $userVoucher->voucher->discount_amount)
+                ? $amountAfterItemDiscount
+                : (string) $userVoucher->voucher->discount_amount;
+
+            $discountTotal = bcadd($discountTotal, $voucherDiscount, 2);
+            $amountAfterItemDiscount = bcsub($amountAfterItemDiscount, $voucherDiscount, 2);
+
+            $voucherInfo = [
+                'voucher_name' => $userVoucher->voucher->name,
+                'voucher_code' => $userVoucher->voucher->code,
+                'voucher_discount' => $voucherDiscount,
+            ];
+        }
+
+        // Fee dari app_settings
+        $fees = \App\Models\AppSetting::all();
+        $totalFees = '0.00';
+        $feesPreview = [];
+
+        foreach ($fees as $fee) {
+            if ($fee->type === 'percentage') {
+                $feeAmount = bcdiv(bcmul($baseForFee, $fee->value, 4), '100', 2);
+            } else {
+                $feeAmount = $fee->value;
+            }
+
+            $totalFees = bcadd($totalFees, $feeAmount, 2);
+            $feesPreview[] = [
+                'key' => $fee->key,
+                'label' => $fee->label,
+                'amount' => $feeAmount,
+            ];
+        }
+
+        $totalAmount = bcadd($amountAfterItemDiscount, $totalFees, 2);
+
+        $loyaltyPoints = $user ? (int) bcdiv($totalAmount, '10000', 0) : 0;
+
+        return [
+            'items' => $previewItems,
+            'subtotal' => $subtotal,
+            'discount_total' => $discountTotal,
+            'voucher' => $voucherInfo,
+            'fees' => $feesPreview,
+            'total_amount' => $totalAmount,
+            'loyalty_points_earned' => $loyaltyPoints,
+        ];
     }
 
     /**

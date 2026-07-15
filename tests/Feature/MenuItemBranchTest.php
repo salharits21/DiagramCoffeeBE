@@ -30,7 +30,9 @@ beforeEach(function () {
 describe('Menu-Branch Assignment', function () {
     test('super admin can assign menu to branch', function () {
         $response = $this->actingAs($this->superAdmin)
-            ->postJson("/api/admin/branches/{$this->branch->id}/menu-items/{$this->menuItem->id}");
+            ->postJson("/api/admin/branches/{$this->branch->id}/menu-items", [
+                'menu_item_ids' => [$this->menuItem->id]
+            ]);
 
         $response->assertCreated()
             ->assertJsonPath('success', true);
@@ -41,18 +43,6 @@ describe('Menu-Branch Assignment', function () {
         ]);
     });
 
-    test('duplicate assign returns 409', function () {
-        MenuItemBranch::factory()->create([
-            'menu_item_id' => $this->menuItem->id,
-            'branch_id' => $this->branch->id,
-        ]);
-
-        $response = $this->actingAs($this->superAdmin)
-            ->postJson("/api/admin/branches/{$this->branch->id}/menu-items/{$this->menuItem->id}");
-
-        $response->assertStatus(409);
-    });
-
     test('super admin can unassign menu from branch', function () {
         MenuItemBranch::factory()->create([
             'menu_item_id' => $this->menuItem->id,
@@ -60,7 +50,9 @@ describe('Menu-Branch Assignment', function () {
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->deleteJson("/api/admin/branches/{$this->branch->id}/menu-items/{$this->menuItem->id}");
+            ->deleteJson("/api/admin/branches/{$this->branch->id}/menu-items", [
+                'menu_item_ids' => [$this->menuItem->id]
+            ]);
 
         $response->assertOk();
         $this->assertDatabaseMissing('menu_item_branch', [
@@ -71,7 +63,9 @@ describe('Menu-Branch Assignment', function () {
 
     test('admin cannot assign menu to branch', function () {
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/branches/{$this->branch->id}/menu-items/{$this->menuItem->id}");
+            ->postJson("/api/admin/branches/{$this->branch->id}/menu-items", [
+                'menu_item_ids' => [$this->menuItem->id]
+            ]);
 
         $response->assertForbidden();
     });

@@ -101,12 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Manajemen Menu (CRUD penuh)
         Route::post('/admin/menu-items', [MenuItemController::class, 'store']);
+        Route::post('/admin/menu-items/import', [MenuItemController::class, 'importCSV']);
         Route::put('/admin/menu-items/{menuItem}', [MenuItemController::class, 'update']);
         Route::delete('/admin/menu-items/{menuItem}', [MenuItemController::class, 'destroy']);
 
         // Assign/Unassign menu ke cabang
-        Route::post('/admin/branches/{branch}/menu-items/{menuItem}', [MenuItemBranchController::class, 'assign']);
-        Route::delete('/admin/branches/{branch}/menu-items/{menuItem}', [MenuItemBranchController::class, 'unassign']);
+        Route::post('/admin/branches/{branch}/menu-items', [MenuItemBranchController::class, 'assign']);
+        Route::delete('/admin/branches/{branch}/menu-items', [MenuItemBranchController::class, 'unassign']);
 
         // Manajemen Admin
         Route::get('/admin/admins', [AdminController::class, 'index']);

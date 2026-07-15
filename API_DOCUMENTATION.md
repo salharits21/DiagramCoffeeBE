@@ -313,12 +313,35 @@ Buat menu baru. **Form-data** (karena upload gambar).
 **Body (multipart/form-data):**
 | Field | Type | Keterangan |
 |-------|------|------------|
-| `category_id` | int | required, exists |
+| `category_id` | int | optional, exists |
 | `name` | string | required, unique, max:100 |
 | `description` | string | nullable |
 | `base_price` | numeric | required, min:1 |
 | `image_url` | file | nullable, jpeg/png/jpg/webp, max:2MB |
 | `is_active` | boolean | optional |
+
+---
+
+### `POST /admin/menu-items/import` 👑
+
+Import data menu sekaligus menggunakan file CSV atau TXT.
+
+**Body (multipart/form-data):**
+| Field | Type | Keterangan |
+|-------|------|------------|
+| `file` | file | required, csv/txt, max:2MB |
+
+**Format Header CSV yang dibutuhkan:** `name`, `description`, `base_price`
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Import berhasil. 10 menu ditambahkan, 2 baris gagal diimpor.",
+  "imported_count": 10,
+  "failed_count": 2
+}
+```
 
 ---
 
@@ -369,6 +392,50 @@ Daftar menu yang tersedia di cabang tertentu, termasuk harga final setelah disko
 ### `GET /branches/{branch_id}/menus/{menu_item_id}` 🌐
 
 Detail satu menu di cabang tertentu.
+
+---
+
+### `POST /admin/branches/{branch_id}/menu-items` 👑
+
+Assign (tambahkan) banyak menu ke cabang sekaligus. Menu yang sudah ada di cabang akan dilewati otomatis.
+
+**Body:**
+```json
+{
+  "menu_item_ids": [1, 2, 3]
+}
+```
+
+**Response `201`:**
+```json
+{
+  "success": true,
+  "message": "3 Menu berhasil ditambahkan ke cabang",
+  "data": [ ... ]
+}
+```
+
+---
+
+### `DELETE /admin/branches/{branch_id}/menu-items` 👑
+
+Unassign (hapus) banyak menu dari cabang sekaligus.
+
+**Body:**
+```json
+{
+  "menu_item_ids": [1, 2]
+}
+```
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "2 Menu berhasil dihapus dari cabang",
+  "deleted_count": 2
+}
+```
 
 ---
 

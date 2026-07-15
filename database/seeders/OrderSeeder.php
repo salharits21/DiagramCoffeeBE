@@ -26,7 +26,7 @@ class OrderSeeder extends Seeder
         }
 
         // Generate 50 completed orders for training data
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 51; $i <= 100; $i++) {
             $user = $users->random();
             
             $order = Order::create([
@@ -39,7 +39,6 @@ class OrderSeeder extends Seeder
                 'status' => 'completed',
                 'subtotal' => 0,
                 'discount_total' => 0,
-                'admin_fee' => 2000,
                 'total_amount' => 0,
                 'loyalty_points_earned' => 0,
                 'paid_at' => now()->subDays(rand(1, 30)), // Random date in last 30 days

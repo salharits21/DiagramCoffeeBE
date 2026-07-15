@@ -124,6 +124,85 @@ class MenuItemController extends Controller
     }
 
     /**
+     * Import menu dari file CSV.
+     * Akses: Super Admin only
+     */
+    public function importCSV(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $file = $request->file('file');
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = fgetcsv($handle);
+        
+        if (!$header) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File CSV kosong atau format tidak valid',
+            ], 400);
+        }
+
+        // Expected header format: name, description, base_price
+        $header = array_map('trim', $header);
+        $header = array_map('strtolower', $header);
+
+        $nameIndex = array_search('name', $header);
+        $descriptionIndex = array_search('description', $header);
+        $priceIndex = array_search('base_price', $header);
+
+        if ($nameIndex === false || $priceIndex === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File CSV harus memiliki kolom name dan base_price',
+            ], 400);
+        }
+
+        $importedCount = 0;
+        $failedCount = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $name = trim($row[$nameIndex] ?? '');
+            $description = $descriptionIndex !== false ? trim($row[$descriptionIndex] ?? '') : null;
+            $price = trim($row[$priceIndex] ?? '');
+
+            if (empty($name) || !is_numeric($price)) {
+                $failedCount++;
+                continue;
+            }
+
+            $slug = Str::slug($name);
+            $originalSlug = $slug;
+            $counter = 1;
+            while (MenuItem::withTrashed()->where('slug', $slug)->exists()) {
+                $slug = $originalSlug . '-' . time() . rand(10, 99);
+            }
+
+            MenuItem::create([
+                'category_id' => null,
+                'name' => $name,
+                'slug' => $slug,
+                'description' => empty($description) ? null : $description,
+                'base_price' => $price,
+                'is_active' => true,
+                'image_url' => null,
+            ]);
+
+            $importedCount++;
+        }
+
+        fclose($handle);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Import berhasil. {$importedCount} menu ditambahkan, {$failedCount} baris gagal diimpor.",
+            'imported_count' => $importedCount,
+            'failed_count' => $failedCount,
+        ]);
+    }
+
+    /**
      * Menghapus menu (soft delete).
      * Akses: Super Admin only
      */

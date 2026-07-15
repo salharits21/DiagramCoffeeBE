@@ -41,32 +41,43 @@ class MenuItemBranchController extends Controller
      * Assign menu item ke cabang (buat record pivot baru).
      * Akses: Super Admin only
      */
-    public function assign(Request $request, Branch $branch, MenuItem $menuItem)
+    public function assign(Request $request, Branch $branch)
     {
-        // Cek apakah sudah di-assign
-        $existing = MenuItemBranch::where('branch_id', $branch->id)
-            ->where('menu_item_id', $menuItem->id)
-            ->first();
-
-        if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Menu sudah tersedia di cabang ini',
-            ], 409);
-        }
-
-        $menuItemBranch = MenuItemBranch::create([
-            'menu_item_id' => $menuItem->id,
-            'branch_id' => $branch->id,
-            'is_available' => true,
+        $validated = $request->validate([
+            'menu_item_ids' => 'required|array',
+            'menu_item_ids.*' => 'exists:menu_items,id',
         ]);
 
-        $menuItemBranch->load(['menuItem.category', 'branch']);
+        $menuItemIds = $validated['menu_item_ids'];
+        $assignedItems = [];
+        $skippedIds = [];
+
+        foreach ($menuItemIds as $menuItemId) {
+            // Cek apakah sudah di-assign
+            $existing = MenuItemBranch::where('branch_id', $branch->id)
+                ->where('menu_item_id', $menuItemId)
+                ->first();
+
+            if ($existing) {
+                $skippedIds[] = $menuItemId;
+                continue;
+            }
+
+            $menuItemBranch = MenuItemBranch::create([
+                'menu_item_id' => $menuItemId,
+                'branch_id' => $branch->id,
+                'is_available' => true,
+            ]);
+
+            $menuItemBranch->load(['menuItem.category', 'branch']);
+            $assignedItems[] = $menuItemBranch;
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Menu berhasil ditambahkan ke cabang',
-            'data' => $menuItemBranch,
+            'message' => count($assignedItems) . ' Menu berhasil ditambahkan ke cabang' . (count($skippedIds) > 0 ? ', ' . count($skippedIds) . ' dilewati (sudah ada)' : ''),
+            'data' => $assignedItems,
+            'skipped_ids' => $skippedIds,
         ], 201);
     }
 
@@ -129,24 +140,23 @@ class MenuItemBranchController extends Controller
      * Hapus menu dari cabang (unassign).
      * Akses: Super Admin only
      */
-    public function unassign(Branch $branch, MenuItem $menuItem)
+    public function unassign(Request $request, Branch $branch)
     {
-        $menuItemBranch = MenuItemBranch::where('branch_id', $branch->id)
-            ->where('menu_item_id', $menuItem->id)
-            ->first();
+        $validated = $request->validate([
+            'menu_item_ids' => 'required|array',
+            'menu_item_ids.*' => 'exists:menu_items,id',
+        ]);
 
-        if (!$menuItemBranch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Menu tidak ditemukan di cabang ini',
-            ], 404);
-        }
+        $menuItemIds = $validated['menu_item_ids'];
 
-        $menuItemBranch->delete();
+        $deletedCount = MenuItemBranch::where('branch_id', $branch->id)
+            ->whereIn('menu_item_id', $menuItemIds)
+            ->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Menu berhasil dihapus dari cabang',
+            'message' => $deletedCount . ' Menu berhasil dihapus dari cabang',
+            'deleted_count' => $deletedCount,
         ]);
     }
 }

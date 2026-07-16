@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class MenuItem extends Model
 {
@@ -30,6 +33,23 @@ class MenuItem extends Model
             'is_active' => 'boolean',
         ];
     }
+
+    // protected function imageUrl(): Attribute
+    // {
+    //     return Attribute::make(
+    //         get: function ($value) {
+    //             if (!$value) return null;
+                
+    //             // Jika value sudah berupa URL utuh (misal ada data lama/dummy), kembalikan langsung
+    //             if (Str::startsWith($value, ['http://', 'https://'])) {
+    //                 return $value;
+    //             }
+
+    //             // Jika berupa path (menu-images/...), generate URL dari disk S3/R2
+    //             return Storage::disk('s3')->url($value);
+    //         },
+    //     );
+    // }
 
     /**
      * Kategori dari menu ini.

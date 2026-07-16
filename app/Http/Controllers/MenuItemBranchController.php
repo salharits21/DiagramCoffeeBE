@@ -159,4 +159,72 @@ class MenuItemBranchController extends Controller
             'deleted_count' => $deletedCount,
         ]);
     }
+
+    /**
+     * Copy menu items dari cabang lain ke cabang ini.
+     * Akses: Super Admin only
+     */
+    public function copy(Request $request, Branch $branch)
+    {
+        $validated = $request->validate([
+            'source_branch_id' => 'required|exists:branches,id|different:' . $branch->id,
+            'overwrite' => 'nullable|boolean',
+        ]);
+
+        $sourceBranchId = $validated['source_branch_id'];
+        $overwrite = $validated['overwrite'] ?? false;
+
+        $sourceMenus = MenuItemBranch::where('branch_id', $sourceBranchId)->get();
+
+        if ($sourceMenus->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cabang sumber tidak memiliki menu',
+            ], 404);
+        }
+
+        $copiedCount = 0;
+        $updatedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($sourceMenus as $sourceMenu) {
+            $existing = MenuItemBranch::where('branch_id', $branch->id)
+                ->where('menu_item_id', $sourceMenu->menu_item_id)
+                ->first();
+
+            $dataToCopy = [
+                'is_available' => $sourceMenu->is_available,
+                'stock' => $sourceMenu->stock,
+                'discount_type' => $sourceMenu->discount_type,
+                'discount_percentage' => $sourceMenu->discount_percentage,
+                'discount_amount' => $sourceMenu->discount_amount,
+                'is_promo_active' => $sourceMenu->is_promo_active,
+            ];
+
+            if ($existing) {
+                if ($overwrite) {
+                    $existing->update($dataToCopy);
+                    $updatedCount++;
+                } else {
+                    $skippedCount++;
+                }
+            } else {
+                MenuItemBranch::create(array_merge([
+                    'menu_item_id' => $sourceMenu->menu_item_id,
+                    'branch_id' => $branch->id,
+                ], $dataToCopy));
+                $copiedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menyalin menu. $copiedCount disalin, $updatedCount diperbarui, $skippedCount dilewati.",
+            'stats' => [
+                'copied' => $copiedCount,
+                'updated' => $updatedCount,
+                'skipped' => $skippedCount,
+            ]
+        ]);
+    }
 }

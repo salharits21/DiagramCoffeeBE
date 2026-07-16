@@ -417,6 +417,33 @@ Assign (tambahkan) banyak menu ke cabang sekaligus. Menu yang sudah ada di caban
 
 ---
 
+### `POST /admin/branches/{branch_id}/copy-menus` 👑
+
+Menyalin seluruh daftar menu (termasuk status aktif, stok, dan promo) dari cabang sumber ke cabang target. Jika menu sudah ada di cabang target, menu tersebut akan dilewati atau ditimpa (tergantung parameter `overwrite`).
+
+**Body:**
+```json
+{
+  "source_branch_id": "integer, required, exists in branches,id",
+  "overwrite": "boolean, optional, default: false"
+}
+```
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Berhasil menyalin menu. 10 disalin, 2 diperbarui, 1 dilewati.",
+  "stats": {
+    "copied": 10,
+    "updated": 2,
+    "skipped": 1
+  }
+}
+```
+
+---
+
 ### `DELETE /admin/branches/{branch_id}/menu-items` 👑
 
 Unassign (hapus) banyak menu dari cabang sekaligus.

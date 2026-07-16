@@ -26,6 +26,21 @@ class Banner extends Model
         ];
     }
 
+    // protected function imageUrl(): Attribute
+    // {
+    //     return Attribute::make(
+    //         get: function ($value) {
+    //             if (!$value) return null;
+                
+    //             if (Str::startsWith($value, ['http://', 'https://'])) {
+    //                 return $value;
+    //             }
+
+    //             return Storage::disk('s3')->url($value);
+    //         },
+    //     );
+    // }
+
     // ==========================================
     // Scopes
     // ==========================================

@@ -49,8 +49,7 @@ class BannerController extends Controller
         // Hapus field 'image' dari data (sudah diproses)
         unset($data['image']);
 
-        $banner = Banner::create($data);
-
+        $banner = Banner::create($data);        
         return response()->json([
             'success' => true,
             'message' => 'Banner berhasil ditambahkan',

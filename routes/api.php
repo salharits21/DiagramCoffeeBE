@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Assign/Unassign menu ke cabang
         Route::post('/admin/branches/{branch}/menu-items', [MenuItemBranchController::class, 'assign']);
+        Route::post('/admin/branches/{branch}/copy-menus', [MenuItemBranchController::class, 'copy']);
         Route::delete('/admin/branches/{branch}/menu-items', [MenuItemBranchController::class, 'unassign']);
 
         // Manajemen Admin

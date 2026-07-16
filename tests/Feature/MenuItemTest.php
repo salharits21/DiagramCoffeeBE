@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\MenuItem;
+use App\Models\Category;
 use Illuminate\Http\UploadedFile;
 
 beforeEach(function () {
@@ -9,10 +10,12 @@ beforeEach(function () {
 });
 
 describe('Menu Item CSV Import', function () {
-    test('super admin can import menu items via csv', function () {
-        $csvContent = "name,description,base_price\n";
-        $csvContent .= "Kopi Hitam,Kopi hitam manis,15000\n";
-        $csvContent .= "Kopi Susu,,18000\n";
+    test('super admin can import menu items via csv with categories', function () {
+        $category = Category::factory()->create(['name' => 'Minuman']);
+        
+        $csvContent = "category,name,description,base_price\n";
+        $csvContent .= "Minuman,Kopi Hitam,Kopi hitam manis,15000\n";
+        $csvContent .= "Minuman,Kopi Susu,,18000\n";
         
         $file = UploadedFile::fake()->createWithContent('menu.csv', $csvContent);
 
@@ -23,59 +26,71 @@ describe('Menu Item CSV Import', function () {
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('imported_count', 2)
-            ->assertJsonPath('failed_count', 0);
+            ->assertJsonPath('imported_count', 2);
 
         $this->assertDatabaseHas('menu_items', [
             'name' => 'Kopi Hitam',
             'base_price' => '15000',
-            'category_id' => null,
+            'category_id' => $category->id,
         ]);
 
         $this->assertDatabaseHas('menu_items', [
             'name' => 'Kopi Susu',
             'base_price' => '18000',
-            'category_id' => null,
+            'category_id' => $category->id,
             'description' => null,
         ]);
     });
 
-    test('import skips rows with missing name or price', function () {
-        $csvContent = "name,description,base_price\n";
-        $csvContent .= "Teh Manis,Teh,10000\n"; // Valid
-        $csvContent .= ",Kosong name,10000\n"; // Invalid
-        $csvContent .= "Teh Tawar,Teh,bukan_angka\n"; // Invalid
+    test('import fails if category column is positioned after name', function () {
+        $csvContent = "name,category,description,base_price\n"; // Category is after name
+        $csvContent .= "Kopi Hitam,Minuman,Kopi hitam manis,15000\n";
         
-        $file = UploadedFile::fake()->createWithContent('menu2.csv', $csvContent);
+        $file = UploadedFile::fake()->createWithContent('menu_order.csv', $csvContent);
 
         $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/admin/menu-items/import', [
                 'file' => $file,
             ]);
 
-        $response->assertOk()
-            ->assertJsonPath('imported_count', 1)
-            ->assertJsonPath('failed_count', 2);
+        $response->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Kolom category harus berada sebelum kolom name');
     });
 
-    test('import handles duplicate slugs by appending unique string', function () {
-        MenuItem::factory()->create(['name' => 'Es Teh', 'slug' => 'es-teh']);
+    test('import fails with detailed errors on invalid data', function () {
+        Category::factory()->create(['name' => 'Minuman']);
+        MenuItem::factory()->create(['name' => 'Teh Manis']);
 
-        $csvContent = "name,description,base_price\n";
-        $csvContent .= "Es Teh,Teh,10000\n";
+        $csvContent = "category,name,description,base_price\n";
+        $csvContent .= "Makanan,Roti Bakar,Enak,10000\n"; // Category not found
+        $csvContent .= "Minuman,Teh Manis,,10000\n"; // Duplicate in DB
+        $csvContent .= "Minuman,Jus Apel,,15000\n"; // Valid but aborted due to other errors
+        $csvContent .= "Minuman,Jus Apel,,15000\n"; // Duplicate in CSV
+        $csvContent .= "Minuman,Kosong Harga,,bukan_angka\n"; // Invalid price
         
-        $file = UploadedFile::fake()->createWithContent('menu3.csv', $csvContent);
+        $file = UploadedFile::fake()->createWithContent('menu_invalid.csv', $csvContent);
 
         $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/admin/menu-items/import', [
                 'file' => $file,
             ]);
 
-        $response->assertOk()
-            ->assertJsonPath('imported_count', 1);
+        $response->assertStatus(400)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Terdapat kesalahan validasi pada file CSV.')
+            ->assertJsonStructure(['errors']);
 
-        $menuItem = MenuItem::where('name', 'Es Teh')->latest('id')->first();
-        expect($menuItem->slug)->not->toBe('es-teh');
-        expect(str_starts_with($menuItem->slug, 'es-teh-'))->toBeTrue();
+        $errors = $response->json('errors');
+        expect($errors)->toHaveCount(4); // Category empty/not found, Name DB Duplicate, Name CSV Duplicate, Price Invalid.
+        expect($errors[0])->toContain("Baris 2: Kategori 'Makanan' tidak ditemukan");
+        expect($errors[1])->toContain("Baris 3: Menu 'Teh Manis' sudah ada di sistem");
+        expect($errors[2])->toContain("Baris 5: Menu 'Jus Apel' duplikat di dalam file CSV");
+        expect($errors[3])->toContain("Baris 6: Harga dasar 'bukan_angka' tidak valid");
+        
+        // Ensure no data was imported due to abort
+        $this->assertDatabaseMissing('menu_items', [
+            'name' => 'Jus Apel', 
+        ]);
     });
 });

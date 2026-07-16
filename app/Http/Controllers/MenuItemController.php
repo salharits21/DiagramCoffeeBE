@@ -136,7 +136,7 @@ class MenuItemController extends Controller
         $file = $request->file('file');
         $handle = fopen($file->getRealPath(), 'r');
         $header = fgetcsv($handle);
-        
+
         if (!$header) {
             return response()->json([
                 'success' => false,
@@ -144,35 +144,96 @@ class MenuItemController extends Controller
             ], 400);
         }
 
-        // Expected header format: name, description, base_price
+        // Expected header format: category, name, description, base_price
         $header = array_map('trim', $header);
         $header = array_map('strtolower', $header);
 
+        $categoryIndex = array_search('category', $header);
         $nameIndex = array_search('name', $header);
         $descriptionIndex = array_search('description', $header);
         $priceIndex = array_search('base_price', $header);
 
-        if ($nameIndex === false || $priceIndex === false) {
+        if ($categoryIndex === false || $nameIndex === false || $priceIndex === false) {
             return response()->json([
                 'success' => false,
-                'message' => 'File CSV harus memiliki kolom name dan base_price',
+                'message' => 'File CSV harus memiliki kolom category, name, dan base_price',
             ], 400);
         }
 
-        $importedCount = 0;
-        $failedCount = 0;
+        if ($categoryIndex >= $nameIndex) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kolom category harus berada sebelum kolom name',
+            ], 400);
+        }
+
+        $existingCategories = \App\Models\Category::pluck('id', 'name')->mapWithKeys(function ($id, $name) {
+            return [strtolower($name) => $id];
+        })->toArray();
+
+        $existingMenus = MenuItem::pluck('id', 'name')->mapWithKeys(function ($id, $name) {
+            return [strtolower($name) => $id];
+        })->toArray();
+
+        $rows = [];
+        $errors = [];
+        $csvMenus = [];
+        $rowNumber = 2; // header is row 1
 
         while (($row = fgetcsv($handle)) !== false) {
+            $categoryName = trim($row[$categoryIndex] ?? '');
             $name = trim($row[$nameIndex] ?? '');
             $description = $descriptionIndex !== false ? trim($row[$descriptionIndex] ?? '') : null;
             $price = trim($row[$priceIndex] ?? '');
 
-            if (empty($name) || !is_numeric($price)) {
-                $failedCount++;
-                continue;
+            // Validate Category
+            if (empty($categoryName)) {
+                $errors[] = "Baris $rowNumber: Kategori kosong.";
+            } elseif (!array_key_exists(strtolower($categoryName), $existingCategories)) {
+                $errors[] = "Baris $rowNumber: Kategori '{$categoryName}' tidak ditemukan di sistem.";
             }
 
-            $slug = Str::slug($name);
+            // Validate Name
+            if (empty($name)) {
+                $errors[] = "Baris $rowNumber: Nama menu kosong.";
+            } else {
+                $lowerName = strtolower($name);
+                if (array_key_exists($lowerName, $existingMenus)) {
+                    $errors[] = "Baris $rowNumber: Menu '{$name}' sudah ada di sistem.";
+                } elseif (in_array($lowerName, $csvMenus)) {
+                    $errors[] = "Baris $rowNumber: Menu '{$name}' duplikat di dalam file CSV.";
+                } else {
+                    $csvMenus[] = $lowerName;
+                }
+            }
+
+            // Validate Price
+            if (!is_numeric($price)) {
+                $errors[] = "Baris $rowNumber: Harga dasar '{$price}' tidak valid.";
+            }
+
+            $rows[] = [
+                'category_id' => $existingCategories[strtolower($categoryName)] ?? null,
+                'name' => $name,
+                'description' => $description,
+                'base_price' => $price,
+            ];
+
+            $rowNumber++;
+        }
+        fclose($handle);
+
+        if (count($errors) > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terdapat kesalahan validasi pada file CSV.',
+                'errors' => $errors,
+            ], 400);
+        }
+
+        $importedCount = 0;
+        foreach ($rows as $rowData) {
+            $slug = Str::slug($rowData['name']);
             $originalSlug = $slug;
             $counter = 1;
             while (MenuItem::withTrashed()->where('slug', $slug)->exists()) {
@@ -180,11 +241,11 @@ class MenuItemController extends Controller
             }
 
             MenuItem::create([
-                'category_id' => null,
-                'name' => $name,
+                'category_id' => $rowData['category_id'],
+                'name' => $rowData['name'],
                 'slug' => $slug,
-                'description' => empty($description) ? null : $description,
-                'base_price' => $price,
+                'description' => empty($rowData['description']) ? null : $rowData['description'],
+                'base_price' => $rowData['base_price'],
                 'is_active' => true,
                 'image_url' => null,
             ]);
@@ -192,13 +253,10 @@ class MenuItemController extends Controller
             $importedCount++;
         }
 
-        fclose($handle);
-
         return response()->json([
             'success' => true,
-            'message' => "Import berhasil. {$importedCount} menu ditambahkan, {$failedCount} baris gagal diimpor.",
+            'message' => "Import berhasil. {$importedCount} menu ditambahkan.",
             'imported_count' => $importedCount,
-            'failed_count' => $failedCount,
         ]);
     }
 

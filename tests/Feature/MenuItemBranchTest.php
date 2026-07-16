@@ -69,6 +69,75 @@ describe('Menu-Branch Assignment', function () {
 
         $response->assertForbidden();
     });
+
+    test('super admin can copy menu items from another branch', function () {
+        MenuItemBranch::factory()->create([
+            'menu_item_id' => $this->menuItem->id,
+            'branch_id' => $this->otherBranch->id,
+            'stock' => 50,
+            'is_available' => true,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson("/api/admin/branches/{$this->branch->id}/copy-menus", [
+                'source_branch_id' => $this->otherBranch->id,
+                'overwrite' => false,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('stats.copied', 1);
+
+        $this->assertDatabaseHas('menu_item_branch', [
+            'menu_item_id' => $this->menuItem->id,
+            'branch_id' => $this->branch->id,
+            'stock' => 50,
+        ]);
+    });
+
+    test('copy menu items respects overwrite parameter', function () {
+        $otherMenu = MenuItem::factory()->create(['category_id' => $this->category->id]);
+
+        MenuItemBranch::factory()->create([
+            'menu_item_id' => $this->menuItem->id,
+            'branch_id' => $this->otherBranch->id,
+            'stock' => 100,
+        ]);
+        MenuItemBranch::factory()->create([
+            'menu_item_id' => $otherMenu->id,
+            'branch_id' => $this->otherBranch->id,
+            'stock' => 200,
+        ]);
+
+        MenuItemBranch::factory()->create([
+            'menu_item_id' => $this->menuItem->id,
+            'branch_id' => $this->branch->id,
+            'stock' => 10,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson("/api/admin/branches/{$this->branch->id}/copy-menus", [
+                'source_branch_id' => $this->otherBranch->id,
+                'overwrite' => true,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('stats.copied', 1) 
+            ->assertJsonPath('stats.updated', 1) 
+            ->assertJsonPath('stats.skipped', 0);
+
+        $this->assertDatabaseHas('menu_item_branch', [
+            'menu_item_id' => $this->menuItem->id,
+            'branch_id' => $this->branch->id,
+            'stock' => 100, 
+        ]);
+
+        $this->assertDatabaseHas('menu_item_branch', [
+            'menu_item_id' => $otherMenu->id,
+            'branch_id' => $this->branch->id,
+            'stock' => 200,
+        ]);
+    });
 });
 
 // ==========================================

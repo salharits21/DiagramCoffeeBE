@@ -331,15 +331,28 @@ Import data menu sekaligus menggunakan file CSV atau TXT.
 |-------|------|------------|
 | `file` | file | required, csv/txt, max:2MB |
 
-**Format Header CSV yang dibutuhkan:** `name`, `description`, `base_price`
+**Format Header CSV yang dibutuhkan:** `category`, `name`, `description`, `base_price`.
+(Catatan: Kolom `category` harus ada dan letaknya **sebelum** kolom `name`).
 
-**Response `200`:**
+**Response Sukses `200`:**
 ```json
 {
   "success": true,
-  "message": "Import berhasil. 10 menu ditambahkan, 2 baris gagal diimpor.",
-  "imported_count": 10,
-  "failed_count": 2
+  "message": "Import berhasil. 10 menu ditambahkan.",
+  "imported_count": 10
+}
+```
+
+**Response Gagal Validasi `400`:**
+```json
+{
+  "success": false,
+  "message": "Terdapat kesalahan validasi pada file CSV.",
+  "errors": [
+    "Baris 2: Kategori 'Minuman' tidak ditemukan di sistem.",
+    "Baris 3: Menu 'Kopi Susu' duplikat di dalam file CSV.",
+    "Baris 4: Menu 'Americano' sudah ada di sistem."
+  ]
 }
 ```
 

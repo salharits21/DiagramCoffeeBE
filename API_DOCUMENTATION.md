@@ -322,6 +322,15 @@ Buat menu baru. **Form-data** (karena upload gambar).
 
 ---
 
+### `GET /admin/menu-items/export` 👑
+
+Mengunduh (download) seluruh data menu (aktif dan non-aktif) dalam format file CSV. Format file yang dihasilkan akan kompatibel dengan format yang dibutuhkan untuk Endpoint Import.
+
+**Response `200`:**
+File unduhan bernama `menus_export_YYYYMMDD_HHMMSS.csv` dengan header `Content-Type: text/csv`.
+
+---
+
 ### `POST /admin/menu-items/import` 👑
 
 Import data menu sekaligus menggunakan file CSV atau TXT.

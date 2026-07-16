@@ -261,6 +261,41 @@ class MenuItemController extends Controller
     }
 
     /**
+     * Export semua menu ke file CSV.
+     * Akses: Super Admin only
+     */
+    public function exportCSV(Request $request)
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="menus_export_' . date('Ymd_His') . '.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            
+            // Header CSV (sesuai format import)
+            fputcsv($file, ['category', 'name', 'description', 'base_price']);
+
+            // Ambil semua menu (aktif & non-aktif) beserta kategorinya
+            $menus = MenuItem::with('category')->get();
+
+            foreach ($menus as $menu) {
+                fputcsv($file, [
+                    $menu->category ? $menu->category->name : '',
+                    $menu->name,
+                    $menu->description,
+                    $menu->base_price,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Menghapus menu (soft delete).
      * Akses: Super Admin only
      */

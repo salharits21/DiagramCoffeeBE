@@ -94,3 +94,39 @@ describe('Menu Item CSV Import', function () {
         ]);
     });
 });
+
+describe('Menu Item CSV Export', function () {
+    test('super admin can export all menu items to csv', function () {
+        $category = Category::factory()->create(['name' => 'Minuman']);
+        
+        MenuItem::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Kopi Hitam',
+            'description' => 'Kopi pahit',
+            'base_price' => 15000,
+        ]);
+
+        MenuItem::factory()->create([
+            'category_id' => null, // No category
+            'name' => 'Air Mineral',
+            'description' => null,
+            'base_price' => 5000,
+            'is_active' => false, // Ensure inactive is exported too
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->get('/api/admin/menu-items/export');
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        
+        // Read the streamed response content
+        $content = $response->streamedContent();
+        
+        // Assert header is present
+        expect($content)->toContain("category,name,description,base_price\n");
+        // Assert data is present
+        expect($content)->toContain("Minuman,\"Kopi Hitam\",\"Kopi pahit\",15000.00\n");
+        expect($content)->toContain(",\"Air Mineral\",,5000.00\n");
+    });
+});

@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/categories/{category}', [CategoryController::class, 'destroy']);
 
         // Manajemen Menu (CRUD penuh)
+        Route::get('/admin/menu-items/export', [MenuItemController::class, 'exportCSV']);
         Route::post('/admin/menu-items', [MenuItemController::class, 'store']);
         Route::post('/admin/menu-items/import', [MenuItemController::class, 'importCSV']);
         Route::put('/admin/menu-items/{menuItem}', [MenuItemController::class, 'update']);

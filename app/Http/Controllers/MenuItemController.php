@@ -73,7 +73,7 @@ class MenuItemController extends Controller
             $data['slug'] = $originalSlug . '-' . $counter++;
         }
 
-        $data['image_url'] = Storage::disk('public')->put('menu-images', $request->file('image_url'));
+        $data['image_url'] = Storage::disk('s3')->put('menu-images', $request->file('image_url'));
 
         $menuItem = MenuItem::create($data);
         $menuItem->load('category');
@@ -106,9 +106,9 @@ class MenuItemController extends Controller
 
         if ($request->hasFile('image_url')) {
             if ($menuItem->image_url) {
-                Storage::disk('public')->delete($menuItem->image_url);
+                Storage::disk('s3')->delete($menuItem->image_url);
             }
-            $data['image_url'] = Storage::disk('public')->put('menu-images', $request->file('image_url'));
+            $data['image_url'] = Storage::disk('s3')->put('menu-images', $request->file('image_url'));
         } else {
             unset($data['image_url']);
         }

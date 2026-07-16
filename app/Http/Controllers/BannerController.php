@@ -44,7 +44,7 @@ class BannerController extends Controller
     {
         $data = $request->validated();
 
-        $data['image_url'] = Storage::disk('public')->put('banners', $request->file('image'));
+        $data['image_url'] = Storage::disk('s3')->put('banners', $request->file('image'));
 
         // Hapus field 'image' dari data (sudah diproses)
         unset($data['image']);
@@ -67,9 +67,9 @@ class BannerController extends Controller
         if ($request->hasFile('image')) {
             // Hapus gambar lama
             if ($banner->image_url) {
-                Storage::disk('public')->delete($banner->image_url);
+                Storage::disk('s3')->delete($banner->image_url);
             }
-            $data['image_url'] = Storage::disk('public')->put('banners', $request->file('image'));
+            $data['image_url'] = Storage::disk('s3')->put('banners', $request->file('image'));
         }
 
         // Hapus field 'image' dari data

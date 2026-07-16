@@ -34,22 +34,22 @@ class MenuItem extends Model
         ];
     }
 
-    // protected function imageUrl(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function ($value) {
-    //             if (!$value) return null;
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (!$value) return null;
                 
-    //             // Jika value sudah berupa URL utuh (misal ada data lama/dummy), kembalikan langsung
-    //             if (Str::startsWith($value, ['http://', 'https://'])) {
-    //                 return $value;
-    //             }
+                // Jika value sudah berupa URL utuh (misal ada data lama/dummy), kembalikan langsung
+                if (Str::startsWith($value, ['http://', 'https://'])) {
+                    return $value;
+                }
 
-    //             // Jika berupa path (menu-images/...), generate URL dari disk S3/R2
-    //             return Storage::disk('s3')->url($value);
-    //         },
-    //     );
-    // }
+                // Jika berupa path (menu-images/...), generate URL dari disk S3/R2
+                return Storage::disk('s3')->url($value);
+            },
+        );
+    }
 
     /**
      * Kategori dari menu ini.

@@ -44,14 +44,6 @@ class AuthController extends Controller
     // Fitur Login
     public function login(LoginRequest $request)
     {
-        dd([
-            'has_session' => $request->hasSession(),
-            'session_id' => $request->session()->getId(),
-            'csrf_header' => $request->header('X-XSRF-TOKEN'),
-            'xsrf_cookie' => $request->cookie('XSRF-TOKEN'),
-            'session_cookie' => $request->cookie(config('session.cookie')),
-        ]);
-
         $remember = $request->boolean('remember_me');
 
         if ($remember) {

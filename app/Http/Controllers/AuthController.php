@@ -51,7 +51,7 @@ class AuthController extends Controller
         }
 
         if (Auth::attempt($request->only('email', 'password'), $remember)) {
-            $request->session()->regenerate(); // Mencegah Session Fixation
+            //$request->session()->regenerate(); // Mencegah Session Fixation
 
             return response()->json([
                 'success' => true,

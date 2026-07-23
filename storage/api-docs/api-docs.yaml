@@ -1,0 +1,1720 @@
+openapi: 3.0.0
+info:
+  title: 'Diagram Coffee Backend API Documentation'
+  description: 'Dokumentasi OpenAPI resmi untuk Diagram Coffee Backend Service. Menyediakan panduan lengkap endpoint untuk Aplikasi Customer, Panel Admin, Internal ML Recommendation, dan Xendit Payment Gateway Webhook.'
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:8000/api'
+    description: 'Server Pengembangan Lokal (Local Development)'
+  - url: 'https://api.diagramcoffee.id/api'
+    description: 'Server Produksi (Production API)'
+paths:
+  /banners:
+    get:
+      tags:
+        - '9. Banner Promo'
+      summary: 'Daftar banner promo aktif'
+      operationId: 4daf2fdf9a846a1163104d0f1eb9ecbb
+      responses:
+        200:
+          description: 'Daftar banner promo'
+  /admin/banners:
+    get:
+      tags:
+        - '9. Banner Promo'
+      summary: 'Daftar semua banner (Super Admin)'
+      operationId: 413723f998f2d44e0559a4075bcd2fc7
+      responses:
+        200:
+          description: 'Daftar banner promo admin'
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - '9. Banner Promo'
+      summary: 'Tambah banner promo baru (Super Admin)'
+      operationId: d901024f7e3dbe0f82c92b28a64cd327
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              required:
+                - title
+                - image
+              properties:
+                title:
+                  type: string
+                  example: 'Promo Diskon Akhir Bulan'
+                image:
+                  type: string
+                  format: binary
+                is_active:
+                  type: boolean
+                  example: true
+              type: object
+      responses:
+        201:
+          description: 'Banner berhasil dibuat'
+      security:
+        -
+          bearerAuth: []
+  '/admin/banners/{banner}':
+    put:
+      tags:
+        - '9. Banner Promo'
+      summary: 'Perbarui banner promo (Super Admin)'
+      operationId: f2e8314e8c506a87eac35e50da2a3540
+      parameters:
+        -
+          name: banner
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                title:
+                  type: string
+                  example: 'Promo Update'
+                image:
+                  type: string
+                  format: binary
+                is_active:
+                  type: boolean
+                  example: true
+              type: object
+      responses:
+        200:
+          description: 'Banner berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '9. Banner Promo'
+      summary: 'Hapus banner promo (Super Admin)'
+      operationId: 1430c3f2b0bda6cd35bbf82de32c657e
+      parameters:
+        -
+          name: banner
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Banner berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  /admin/admins:
+    get:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Daftar akun admin (Super Admin)'
+      operationId: 9bae08640aae159e326d71e0d9ad3c9a
+      responses:
+        200:
+          description: 'Daftar admin'
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Buat akun admin cabang baru (Super Admin)'
+      operationId: d6daedbf16ed4adb4b1e27822bf64043
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - email
+                - password
+                - branch_id
+              properties:
+                name:
+                  type: string
+                  example: 'Admin Setiabudi'
+                email:
+                  type: string
+                  format: email
+                  example: admin.setiabudi@diagramcoffee.com
+                password:
+                  type: string
+                  format: password
+                  example: Pass1234!
+                branch_id:
+                  type: integer
+                  example: 1
+              type: object
+      responses:
+        201:
+          description: 'Admin cabang berhasil ditambahkan'
+      security:
+        -
+          bearerAuth: []
+  '/admin/admins/{admin}':
+    get:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Detail akun admin (Super Admin)'
+      operationId: baa720a0f6da9cfe04b84378f553aa86
+      parameters:
+        -
+          name: admin
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail akun admin'
+      security:
+        -
+          bearerAuth: []
+    put:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Perbarui akun admin cabang (Super Admin)'
+      operationId: 4c93fec5d57152c13ec683642cef7229
+      parameters:
+        -
+          name: admin
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: 'Admin Setiabudi Updated'
+                branch_id:
+                  type: integer
+                  example: 2
+              type: object
+      responses:
+        200:
+          description: 'Data akun admin berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Hapus akun admin (Super Admin)'
+      operationId: 5d3c45a15aeca130fe09af154635fd10
+      parameters:
+        -
+          name: admin
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Akun admin berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  '/admin/branches/{branch}/admins':
+    get:
+      tags:
+        - '10. Manajemen Admin'
+      summary: 'Daftar admin spesifik per cabang (Super Admin)'
+      operationId: 20a4aeb24c8049c67dcbd7e68827178d
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Daftar admin per cabang'
+      security:
+        -
+          bearerAuth: []
+  /admin/orders:
+    get:
+      tags:
+        - '12. Manajemen Pesanan (Admin)'
+      summary: 'Daftar semua pesanan masuk (Admin & Super Admin)'
+      operationId: 65aea62762825ef4f6064049841d4787
+      parameters:
+        -
+          name: branch_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        -
+          name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Daftar pesanan admin'
+      security:
+        -
+          bearerAuth: []
+  '/admin/orders/{order}':
+    get:
+      tags:
+        - '12. Manajemen Pesanan (Admin)'
+      summary: 'Detail pesanan admin (Admin & Super Admin)'
+      operationId: 9ade94e1bee43d0b56f3f8c3f31f9a90
+      parameters:
+        -
+          name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail pesanan admin'
+      security:
+        -
+          bearerAuth: []
+  '/admin/orders/{order}/status':
+    put:
+      tags:
+        - '12. Manajemen Pesanan (Admin)'
+      summary: 'Update status pesanan (Admin & Super Admin)'
+      operationId: 6c3e223cb0c96e318e9dac277c5b268e
+      parameters:
+        -
+          name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  example: processing
+                  enum:
+                    - pending
+                    - processing
+                    - completed
+                    - cancelled
+              type: object
+      responses:
+        200:
+          description: 'Status pesanan berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+  '/admin/orders/{order}/confirm-cash':
+    post:
+      tags:
+        - '12. Manajemen Pesanan (Admin)'
+      summary: 'Konfirmasi pembayaran tunai (Admin & Super Admin)'
+      operationId: 1548a648393e9c33e7a459387c99946d
+      parameters:
+        -
+          name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Pembayaran tunai berhasil dikonfirmasi'
+      security:
+        -
+          bearerAuth: []
+  /admin/statistics:
+    get:
+      tags:
+        - '13. Statistik Penjualan'
+      summary: 'Laporan & statistik penjualan (Admin & Super Admin)'
+      operationId: 167bab589d65287b27e5c978785e0e84
+      parameters:
+        -
+          name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        -
+          name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        200:
+          description: 'Data statistik penjualan'
+      security:
+        -
+          bearerAuth: []
+  /register:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Registrasi customer baru'
+      description: 'Pendaftaran akun customer baru. Mengirimkan email verifikasi otomatis.'
+      operationId: 42a2f8e134a27a35014c1fdbfa44f4c0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  example: 'Budi Santoso'
+                email:
+                  type: string
+                  format: email
+                  example: budi@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Secret123!
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: Secret123!
+              type: object
+      responses:
+        201:
+          description: 'Registrasi berhasil'
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Registrasi berhasil. Silakan cek email untuk verifikasi.'
+                  data:
+                    properties:
+                      user:
+                        type: object
+                      access_token:
+                        type: string
+                        example: 1|abc123def...
+                      token_type:
+                        type: string
+                        example: Bearer
+                    type: object
+                type: object
+        422:
+          description: 'Validasi gagal'
+  /login:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Login pengguna'
+      description: 'Login menggunakan email dan password untuk mendapatkan access token.'
+      operationId: c4402aa144ecf20bf29e6728cdf3d192
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: budi@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Secret123!
+                remember_me:
+                  type: boolean
+                  example: false
+              type: object
+      responses:
+        200:
+          description: 'Login berhasil'
+        401:
+          description: 'Email atau password salah'
+  /forgot-password:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Minta link reset password'
+      operationId: a1dd5657619f381e966dab748b64015e
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: budi@example.com
+              type: object
+      responses:
+        200:
+          description: 'Email reset password berhasil dikirim'
+  /reset-password:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Reset password dengan token'
+      operationId: e5af60800de0e7db208d0f1a17d1a85a
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - token
+                - email
+                - password
+                - password_confirmation
+              properties:
+                token:
+                  type: string
+                  example: abc123token
+                email:
+                  type: string
+                  format: email
+                  example: budi@example.com
+                password:
+                  type: string
+                  format: password
+                  example: NewSecret123!
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: NewSecret123!
+              type: object
+      responses:
+        200:
+          description: 'Password berhasil direset'
+  /email/resend:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Kirim ulang email verifikasi'
+      operationId: 13d5220fad3eca8c5ac2479f032dcf29
+      responses:
+        200:
+          description: 'Email verifikasi berhasil dikirim ulang'
+      security:
+        -
+          bearerAuth: []
+  '/email/verify/{id}/{hash}':
+    get:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Verifikasi alamat email dari tautan'
+      operationId: a206767a568ef941cd8624b8885396ae
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        -
+          name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Email berhasil diverifikasi'
+  /logout:
+    post:
+      tags:
+        - '1. Autentikasi'
+      summary: 'Logout pengguna'
+      operationId: 2d5f711100ce71010e100d56cbdfe27c
+      responses:
+        200:
+          description: 'Logout berhasil'
+      security:
+        -
+          bearerAuth: []
+  /user:
+    get:
+      tags:
+        - '2. Profil User'
+      summary: 'Ambil data profil pengguna aktif'
+      operationId: bc19edaccf1f7d1f16e8f8143ab54e6a
+      responses:
+        200:
+          description: 'Data profil berhasil diambil'
+      security:
+        -
+          bearerAuth: []
+  /user/profile:
+    put:
+      tags:
+        - '2. Profil User'
+      summary: 'Perbarui profil nama pengguna'
+      operationId: ac06ca0ff27c879330ea4d3c44ffd9b6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Budi Santoso Updated'
+              type: object
+      responses:
+        200:
+          description: 'Profil berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+  /branches:
+    get:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Daftar cabang aktif'
+      operationId: 40e1197f4511b275d9dc594d019c3f7b
+      responses:
+        200:
+          description: 'Daftar cabang berhasil diambil'
+  '/branches/{branch}':
+    get:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Detail cabang'
+      operationId: 412fa1b4af4a19796ab4f9bee6464cad
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail cabang'
+  /admin/branches:
+    get:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Daftar semua cabang (Super Admin)'
+      operationId: a57f32555efe747f7abd9e21cdb9e200
+      responses:
+        200:
+          description: 'Daftar cabang admin'
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Tambah cabang baru (Super Admin)'
+      operationId: 577015f46ca6ba16715dbd2e63a9f809
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - address
+                - phone
+              properties:
+                name:
+                  type: string
+                  example: 'Cabang Setiabudi'
+                address:
+                  type: string
+                  example: 'Jl. Setiabudi No. 123'
+                phone:
+                  type: string
+                  example: '08123456789'
+              type: object
+      responses:
+        201:
+          description: 'Cabang berhasil ditambahkan'
+      security:
+        -
+          bearerAuth: []
+  '/admin/branches/{branch}':
+    put:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Perbarui data cabang (Super Admin)'
+      operationId: ed1d906636456db773c63b8efc3e6842
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - address
+                - phone
+              properties:
+                name:
+                  type: string
+                  example: 'Cabang Setiabudi Updated'
+                address:
+                  type: string
+                  example: 'Jl. Setiabudi No. 456'
+                phone:
+                  type: string
+                  example: '08123456789'
+              type: object
+      responses:
+        200:
+          description: 'Cabang berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '3. Cabang (Branch)'
+      summary: 'Hapus cabang (Super Admin)'
+      operationId: b1ff0bc225783fc9ffb27c6389d8eba7
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Cabang berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  /categories:
+    get:
+      tags:
+        - '4. Kategori'
+      summary: 'Daftar kategori menu'
+      operationId: dce4056a0a32005e483dfc7a7fdc9005
+      responses:
+        200:
+          description: 'Daftar kategori'
+  '/categories/{category}':
+    get:
+      tags:
+        - '4. Kategori'
+      summary: 'Detail kategori menu'
+      operationId: ce3c96f932b79cf923d3607ea39ff351
+      parameters:
+        -
+          name: category
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail kategori'
+  /admin/categories:
+    post:
+      tags:
+        - '4. Kategori'
+      summary: 'Tambah kategori baru (Super Admin)'
+      operationId: 6e65380e2487ed2400c73d17e6eb00f9
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Espresso Based'
+              type: object
+      responses:
+        201:
+          description: 'Kategori berhasil dibuat'
+      security:
+        -
+          bearerAuth: []
+  '/admin/categories/{category}':
+    put:
+      tags:
+        - '4. Kategori'
+      summary: 'Perbarui kategori (Super Admin)'
+      operationId: e0779db43b21c370805eada07e8c7612
+      parameters:
+        -
+          name: category
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: 'Manual Brew'
+              type: object
+      responses:
+        200:
+          description: 'Kategori berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '4. Kategori'
+      summary: 'Hapus kategori (Super Admin)'
+      operationId: f871f8207cc6cf0b732b5dc6711efc2c
+      parameters:
+        -
+          name: category
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Kategori berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  /menu-items:
+    get:
+      tags:
+        - '5. Menu Item'
+      summary: 'Daftar semua menu item master'
+      operationId: 2eeff5c44de71f931c7111f537cbca40
+      responses:
+        200:
+          description: 'Daftar menu master'
+  '/menu-items/{menuItem}':
+    get:
+      tags:
+        - '5. Menu Item'
+      summary: 'Detail menu item master'
+      operationId: 91b6ee3ee90fecea7f1d55e4b06deb05
+      parameters:
+        -
+          name: menuItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail menu master'
+  /admin/menu-items/export:
+    get:
+      tags:
+        - '5. Menu Item'
+      summary: 'Ekspor menu item ke CSV (Super Admin)'
+      operationId: df04bd98abe832d2b3f1ef042e9211a1
+      responses:
+        200:
+          description: 'File CSV menu item'
+      security:
+        -
+          bearerAuth: []
+  /admin/menu-items:
+    post:
+      tags:
+        - '5. Menu Item'
+      summary: 'Buat menu item baru (Super Admin)'
+      operationId: 34a1cf7ae7c8bbf71e0f4e3049dc95ea
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              required:
+                - category_id
+                - name
+                - price
+                - image
+              properties:
+                category_id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: 'Kopi Susu Gula Aren'
+                description:
+                  type: string
+                  example: 'Espresso campur gula aren murni'
+                price:
+                  type: number
+                  example: 25000
+                image:
+                  type: string
+                  format: binary
+              type: object
+      responses:
+        201:
+          description: 'Menu item master berhasil dibuat'
+      security:
+        -
+          bearerAuth: []
+  /admin/menu-items/import:
+    post:
+      tags:
+        - '5. Menu Item'
+      summary: 'Impor menu item dari file CSV (Super Admin)'
+      operationId: 84c8bdd205e74de69a53fc2ddb7c3e41
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+              type: object
+      responses:
+        200:
+          description: 'Impor CSV berhasil'
+      security:
+        -
+          bearerAuth: []
+  '/admin/menu-items/{menuItem}':
+    put:
+      tags:
+        - '5. Menu Item'
+      summary: 'Perbarui menu item master (Super Admin)'
+      operationId: 4e47c69fd9e482641b201f44425a01c4
+      parameters:
+        -
+          name: menuItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                category_id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: 'Kopi Susu Aren Special'
+                price:
+                  type: number
+                  example: 28000
+              type: object
+      responses:
+        200:
+          description: 'Menu master berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '5. Menu Item'
+      summary: 'Hapus menu item master (Super Admin)'
+      operationId: 32b72bde4324638323e70c83ff58aa22
+      parameters:
+        -
+          name: menuItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Menu master berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  '/branches/{branch}/menus':
+    get:
+      tags:
+        - '6. Menu per Cabang'
+      summary: 'Daftar menu & stok cabang spesifik'
+      operationId: b0f38e4505b00600bf1f82c82cdec91a
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Daftar menu per cabang'
+  '/branches/{branch}/menus/{menuItem}':
+    get:
+      tags:
+        - '6. Menu per Cabang'
+      summary: 'Detail menu item di cabang spesifik'
+      operationId: f8ed6848842f4a021a9a8e7f6adfdbd4
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+        -
+          name: menuItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail menu cabang'
+  '/admin/branches/{branch}/menu-items':
+    post:
+      tags:
+        - '6. Menu per Cabang'
+      summary: 'Assign/hubungkan menu item ke cabang (Super Admin)'
+      operationId: 28a59681f152f3a2d120d031c285bb13
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - menu_item_ids
+              properties:
+                menu_item_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 1
+                    - 2
+                    - 3
+              type: object
+      responses:
+        200:
+          description: 'Menu berhasil di-assign ke cabang'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '6. Menu per Cabang'
+      summary: 'Unassign/lepaskan menu dari cabang (Super Admin)'
+      operationId: 6cf518513570b3d700cf440b16ddd9f8
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - menu_item_ids
+              properties:
+                menu_item_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 2
+              type: object
+      responses:
+        200:
+          description: 'Menu berhasil dilepas dari cabang'
+      security:
+        -
+          bearerAuth: []
+  '/admin/branches/{branch}/copy-menus':
+    post:
+      tags:
+        - '6. Menu per Cabang'
+      summary: 'Salin seluruh menu dari cabang lain (Super Admin)'
+      operationId: 3ee8791672035698e9ccd439a8f82c1d
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - source_branch_id
+              properties:
+                source_branch_id:
+                  type: integer
+                  example: 1
+                overwrite:
+                  type: boolean
+                  example: false
+              type: object
+      responses:
+        200:
+          description: 'Menu berhasil disalin antar cabang'
+      security:
+        -
+          bearerAuth: []
+  '/admin/branches/{branch}/stock':
+    get:
+      tags:
+        - '11. Manajemen Stok Cabang'
+      summary: 'Lihat stok menu cabang (Admin & Super Admin)'
+      operationId: 4c7be2d33580be3a29721c603569546f
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Data stok cabang'
+      security:
+        -
+          bearerAuth: []
+  '/admin/branches/{branch}/menu-items/{menuItem}/stock':
+    put:
+      tags:
+        - '11. Manajemen Stok Cabang'
+      summary: 'Update stok menu cabang (Admin & Super Admin)'
+      operationId: 3f67cf9b9ba250d4bbc0d368eed21d4d
+      parameters:
+        -
+          name: branch
+          in: path
+          required: true
+          schema:
+            type: integer
+        -
+          name: menuItem
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - stock
+              properties:
+                stock:
+                  type: integer
+                  example: 50
+                is_available:
+                  type: boolean
+                  example: true
+              type: object
+      responses:
+        200:
+          description: 'Stok berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+  /orders/preview:
+    post:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Preview rincian total pesanan'
+      description: 'Menghitung subtotal, pajak, diskon voucher, dan total biaya sebelum checkout.'
+      operationId: 8a3f0557187b6a2cf6d3892b04ac849f
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - branch_id
+                - items
+              properties:
+                branch_id:
+                  type: integer
+                  example: 1
+                voucher_code:
+                  type: string
+                  example: PROMO50
+                items:
+                  type: array
+                  items:
+                    properties:
+                      menu_item_id:
+                        type: integer
+                        example: 2
+                      quantity:
+                        type: integer
+                        example: 2
+                    type: object
+              type: object
+      responses:
+        200:
+          description: 'Rincian preview pesanan'
+  /orders:
+    get:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Daftar riwayat pesanan customer (Logged in)'
+      operationId: 75789c5e27f8a0dc7ea3d008569ab5d1
+      responses:
+        200:
+          description: 'Riwayat pesanan'
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Buat pesanan baru (Checkout)'
+      description: 'Membuat pesanan baru untuk Guest atau Logged-in Customer.'
+      operationId: 6592e233a4b9b0141cb74dc2472ea7f3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - branch_id
+                - payment_method
+                - items
+              properties:
+                branch_id:
+                  type: integer
+                  example: 1
+                payment_method:
+                  type: string
+                  example: xendit
+                  enum:
+                    - cash
+                    - xendit
+                customer_name:
+                  type: string
+                  example: Ahmad
+                customer_phone:
+                  type: string
+                  example: '0812345678'
+                voucher_code:
+                  type: string
+                  example: PROMO10K
+                items:
+                  type: array
+                  items:
+                    properties:
+                      menu_item_id:
+                        type: integer
+                        example: 1
+                      quantity:
+                        type: integer
+                        example: 1
+                      notes:
+                        type: string
+                        example: 'Less ice'
+                    type: object
+              type: object
+      responses:
+        201:
+          description: 'Pesanan berhasil dibuat'
+  '/orders/status/{orderNumber}':
+    get:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Cek status pesanan publik (Guest)'
+      operationId: 6644842786bb0310ab84b8c2796d07e9
+      parameters:
+        -
+          name: orderNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Status pesanan'
+  '/orders/{order}':
+    get:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Detail pesanan customer'
+      operationId: 187616fd973052627db777b464287ad9
+      parameters:
+        -
+          name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Detail pesanan'
+      security:
+        -
+          bearerAuth: []
+  '/orders/{order}/cancel':
+    post:
+      tags:
+        - '7. Pesanan (Order)'
+      summary: 'Batalkan pesanan customer'
+      operationId: 64454f1ee96b259ff1c0c7cc11156d3b
+      parameters:
+        -
+          name: order
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Pesanan berhasil dibatalkan'
+      security:
+        -
+          bearerAuth: []
+  /vouchers:
+    get:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Daftar voucher publik / loyalty catalog'
+      operationId: af052424ee77d94d3665be8f9dcea0cc
+      responses:
+        200:
+          description: 'Katalog voucher'
+  /vouchers/my-vouchers:
+    get:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Daftar voucher milik customer'
+      operationId: 16dca5ffdb6ab596cc1e8035c2c105a1
+      responses:
+        200:
+          description: 'Daftar voucher tersimpan milik user'
+      security:
+        -
+          bearerAuth: []
+  /vouchers/exchange:
+    post:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Tukar poin loyalty dengan voucher'
+      operationId: f316206c2d7b4ebe1c48378bd1f7bad4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - voucher_id
+              properties:
+                voucher_id:
+                  type: integer
+                  example: 5
+              type: object
+      responses:
+        200:
+          description: 'Penukaran voucher berhasil'
+      security:
+        -
+          bearerAuth: []
+  /admin/vouchers:
+    post:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Buat voucher baru (Super Admin)'
+      operationId: cec80e1f526771be14acad0922d3f66c
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - code
+                - name
+                - discount_type
+                - discount_value
+                - min_order_amount
+              properties:
+                code:
+                  type: string
+                  example: PROMO50K
+                name:
+                  type: string
+                  example: 'Voucher Diskon 50K'
+                discount_type:
+                  type: string
+                  example: fixed
+                  enum:
+                    - fixed
+                    - percent
+                discount_value:
+                  type: number
+                  example: 50000
+                min_order_amount:
+                  type: number
+                  example: 100000
+                points_required:
+                  type: integer
+                  example: 100
+              type: object
+      responses:
+        201:
+          description: 'Voucher berhasil dibuat'
+      security:
+        -
+          bearerAuth: []
+  '/admin/vouchers/{voucher}':
+    put:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Perbarui voucher (Super Admin)'
+      operationId: 109b4d6895a3c6a3f3aba0098a78e143
+      parameters:
+        -
+          name: voucher
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: 'Voucher Diskon 50K Updated'
+                discount_value:
+                  type: number
+                  example: 55000
+              type: object
+      responses:
+        200:
+          description: 'Voucher berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '8. Voucher & Loyalty'
+      summary: 'Hapus voucher (Super Admin)'
+      operationId: c8f1edbcc035025dfee8ac41af234688
+      parameters:
+        -
+          name: voucher
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Voucher berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+  /recommendations:
+    get:
+      tags:
+        - '14. Rekomendasi Menu'
+      summary: 'Rekomendasi menu terpopuler & ML recommendation'
+      description: 'Mengambil daftar menu rekomendasi berbasis algoritma ML Python atau statistik popularitas.'
+      operationId: 1d94cafd18c599a0e1760675a4dfbfe5
+      parameters:
+        -
+          name: branch_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Daftar rekomendasi menu'
+  /webhooks/xendit:
+    post:
+      tags:
+        - '15. Webhook Xendit'
+      summary: 'Callback notification status pembayaran dari Xendit'
+      description: 'Endpoint publik yang dipanggil oleh Xendit untuk memperbarui status pesanan menjadi paid/failed.'
+      operationId: 74fbcc63c986c4734afc5a0bc43ec149
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - id
+                - external_id
+                - status
+              properties:
+                id:
+                  type: string
+                  example: 5f8d...
+                external_id:
+                  type: string
+                  example: ORD-20260723-001
+                status:
+                  type: string
+                  example: PAID
+                paid_amount:
+                  type: number
+                  example: 55000
+              type: object
+      responses:
+        200:
+          description: 'Webhook berhasil diproses'
+      security:
+        -
+          xenditWebhookToken: []
+  /internal/transactions:
+    get:
+      tags:
+        - '16. Internal API (Python ML)'
+      summary: 'Export transaksi untuk training model ML Python'
+      description: 'Endpoint terproteksi khusus untuk pertukaran data transaksi dengan Service Python ML.'
+      operationId: 6cc5f6f557e9beb89bb688822bb329e4
+      responses:
+        200:
+          description: 'Data transaksi terstruktur untuk model ML'
+      security:
+        -
+          internalApiKey: []
+  /fee:
+    get:
+      tags:
+        - '17. Pengaturan Fee (App Settings)'
+      summary: 'Ambil pengaturan biaya aplikasi (Public)'
+      operationId: d4950610fd0b6b437675b5043125b17e
+      responses:
+        200:
+          description: 'Pengaturan fee & pajak aplikasi'
+  /admin/settings/fee:
+    get:
+      tags:
+        - '17. Pengaturan Fee (App Settings)'
+      summary: 'Daftar biaya aplikasi (Super Admin)'
+      operationId: 4ad509b9128fdd09109c74676877c0eb
+      responses:
+        200:
+          description: 'Daftar pengaturan fee admin'
+      security:
+        -
+          bearerAuth: []
+    post:
+      tags:
+        - '17. Pengaturan Fee (App Settings)'
+      summary: 'Tambah biaya aplikasi baru (Super Admin)'
+      operationId: 4f2702865b0c42f6dafcc6b771888f24
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - key
+                - name
+                - amount
+                - type
+              properties:
+                key:
+                  type: string
+                  example: service_fee
+                name:
+                  type: string
+                  example: 'Biaya Layanan'
+                amount:
+                  type: number
+                  example: 2000
+                type:
+                  type: string
+                  example: fixed
+                  enum:
+                    - fixed
+                    - percent
+              type: object
+      responses:
+        201:
+          description: 'Biaya aplikasi berhasil dibuat'
+      security:
+        -
+          bearerAuth: []
+  '/admin/settings/fee/{key}':
+    put:
+      tags:
+        - '17. Pengaturan Fee (App Settings)'
+      summary: 'Perbarui pengaturan biaya aplikasi (Super Admin)'
+      operationId: c4d709a4bb7b18d717ca18f1c42a4d54
+      parameters:
+        -
+          name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - amount
+                - type
+              properties:
+                name:
+                  type: string
+                  example: 'Biaya Layanan Updated'
+                amount:
+                  type: number
+                  example: 2500
+                type:
+                  type: string
+                  example: fixed
+                  enum:
+                    - fixed
+                    - percent
+              type: object
+      responses:
+        200:
+          description: 'Biaya aplikasi berhasil diperbarui'
+      security:
+        -
+          bearerAuth: []
+    delete:
+      tags:
+        - '17. Pengaturan Fee (App Settings)'
+      summary: 'Hapus pengaturan biaya aplikasi (Super Admin)'
+      operationId: a7e1b3b7f6183aa9eee3254614a11eab
+      parameters:
+        -
+          name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Biaya aplikasi berhasil dihapus'
+      security:
+        -
+          bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: 'Sanctum Bearer Token. Example: "Bearer 1|token..."'
+      name: Authorization
+      in: header
+      scheme: bearer
+      bearerFormat: JWT
+    internalApiKey:
+      type: apiKey
+      description: 'Header X-Internal-Secret untuk Python ML Service'
+      name: X-Internal-Secret
+      in: header
+    xenditWebhookToken:
+      type: apiKey
+      description: 'Header x-callback-token untuk Xendit Webhook'
+      name: x-callback-token
+      in: header
+tags:
+  - name: '1. Autentikasi'
+    description: 'Registrasi, Login, Password Reset, Logout & Verifikasi Email'
+  - name: '2. Profil User'
+    description: 'Informasi profil user yang sedang login & edit profil'
+  - name: '3. Cabang (Branch)'
+    description: 'Daftar cabang aktif & manajemen lokasi cabang'
+  - name: '4. Kategori'
+    description: 'Kategori produk menu'
+  - name: '5. Menu Item'
+    description: 'Katalog menu master, ekspor & impor CSV'
+  - name: '6. Menu per Cabang'
+    description: 'Ketersediaan menu & stok spesifik per lokasi cabang'
+  - name: '7. Pesanan (Order)'
+    description: 'Checkout order, preview total, cek status guest, & riwayat pesanan'
+  - name: '8. Voucher & Loyalty'
+    description: 'Voucher promo, penukaran poin loyalty, & voucher pengguna'
+  - name: '9. Banner Promo'
+    description: 'Banner promosi pada halaman utama aplikasi'
+  - name: '10. Manajemen Admin'
+    description: 'Pengelolaan akun admin cabang (Khusus Super Admin)'
+  - name: '11. Manajemen Stok Cabang'
+    description: 'Update & pantau stok produk cabang (Admin & Super Admin)'
+  - name: '12. Manajemen Pesanan (Admin)'
+    description: 'Update status pesanan & konfirmasi pembayaran tunai'
+  - name: '13. Statistik Penjualan'
+    description: 'Grafik & laporan performa penjualan'
+  - name: '14. Rekomendasi Menu'
+    description: 'Rekomendasi menu terpopuler & ML recommendation'
+  - name: '15. Webhook Xendit'
+    description: 'Callback update status pembayaran dari Xendit'
+  - name: '16. Internal API (Python ML)'
+    description: 'Integrasi data transaksi untuk Machine Learning Model'
+  - name: '17. Pengaturan Fee (App Settings)'
+    description: 'Konfigurasi biaya layanan & pajak aplikasi'

@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    Storage::fake('s3');
     Storage::fake('public');
 
     $this->superAdmin = User::factory()->create(['role' => 'super_admin']);
@@ -101,7 +102,7 @@ describe('Super Admin Banner Management', function () {
 
         // Pastikan file disimpan
         $banner = Banner::first();
-        Storage::disk('public')->assertExists($banner->image_url);
+        Storage::disk('s3')->assertExists($banner->image_url);
     });
 
     test('super admin can create banner without optional fields', function () {
@@ -143,7 +144,7 @@ describe('Super Admin Banner Management', function () {
 
         $banner->refresh();
         expect($banner->image_url)->not->toBe('banners/old-image.jpg');
-        Storage::disk('public')->assertExists($banner->image_url);
+        Storage::disk('s3')->assertExists($banner->image_url);
     });
 
     test('super admin can toggle banner active status', function () {

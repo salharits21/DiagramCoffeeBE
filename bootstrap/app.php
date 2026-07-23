@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'internal_api' => \App\Http\Middleware\InternalApiAuth::class,
+            'restrict-swagger' => \App\Http\Middleware\RestrictSwaggerAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
